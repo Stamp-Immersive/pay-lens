@@ -13,7 +13,9 @@
       "Bash(tasklist:*)",
       "Bash(taskkill //F //PID 6560)",
       "Bash(netstat:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)"
     ]
   }
 }

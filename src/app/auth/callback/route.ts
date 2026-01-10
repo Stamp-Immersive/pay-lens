@@ -31,6 +31,19 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
+      // Allowed emails (restrict access during development)
+      const allowedEmails = [
+        'hello@rupertstamp.com',
+        'xstamp3@gmail.com',
+      ];
+
+      // Check if user's email is allowed
+      if (!data.user.email || !allowedEmails.includes(data.user.email.toLowerCase())) {
+        // Sign out unauthorized user
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/login?error=unauthorized`);
+      }
+
       const forwardedHost = request.headers.get('x-forwarded-host');
       const isLocalEnv = process.env.NODE_ENV === 'development';
 

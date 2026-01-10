@@ -22,15 +22,30 @@ PayLens is a payroll management system that gives employees visibility and flexi
 
 ## Current Status: Multi-Organization MVP Complete & Deployed
 
-All core functionality is implemented with multi-organization support. Database migrations have been applied.
+All core functionality is implemented with multi-organization support. The app is live and deployed.
 
-The system supports:
+### Deployment Info
+- **Live URL:** https://pay-lens-bice.vercel.app
+- **GitHub:** https://github.com/Stamp-Immersive/pay-lens
+- **Hosting:** Vercel (auto-deploys from main branch)
+- **Database:** Supabase (hosted)
+- **Email:** Resend (for invite emails)
+
+### Access Control
+Signups are currently restricted to allowed emails only:
+- `hello@rupertstamp.com`
+- `xstamp3@gmail.com`
+
+To add more users, edit `src/app/auth/callback/route.ts` → `allowedEmails` array.
+
+### Features Live
 - Admin management of employees, payroll periods, and payments per organization
 - Employee viewing of payslips and pension adjustment during preview
 - UK tax/NI calculations for 2024/25
 - BACS/CSV export for bank transfers
 - Organization switcher for users in multiple organizations
 - Organization creation and onboarding
+- Email invite system with pending invite acceptance
 
 **Database Status:** All migrations applied (001_payroll_schema.sql, 002_multi_org.sql, 003_fix_profiles_rls.sql, 004_pending_invites.sql)
 
@@ -269,13 +284,23 @@ This phase adds support for multiple organizations and contractors.
 7. Admin marks as processed (payslips become "paid")
 
 ### Security
-- Row Level Security (RLS) on all tables (profiles, organizations, organization_members, employee_details, payroll_periods, payslips, payslip_adjustments, notifications)
+- Row Level Security (RLS) on all tables (profiles, organizations, organization_members, employee_details, payroll_periods, payslips, payslip_adjustments, notifications, pending_invites)
 - All data scoped to organization
 - Admins have full access within their organization
 - Employees can only view/update their own records
 - Pension adjustments only allowed during preview period
 - Profiles RLS allows org members to see fellow members (fixed in 003_fix_profiles_rls.sql)
 - Service role key used server-side only for org creation (bypasses RLS safely after auth verification)
+- Email allowlist restricts who can sign up (development mode)
+
+### Environment Variables (Vercel)
+```
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
+SUPABASE_SERVICE_ROLE_KEY=xxx
+NEXT_PUBLIC_APP_URL=https://pay-lens-bice.vercel.app
+RESEND_API_KEY=re_xxx (optional - logs to console if not set)
+```
 
 ### Multi-Organization Data Model
 ```

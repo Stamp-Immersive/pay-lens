@@ -297,6 +297,11 @@ export async function inviteMember(orgId: string, email: string, role: 'admin' |
   const adminClient = createAdminClient();
   const normalizedEmail = email.toLowerCase().trim();
 
+  // Prevent inviting yourself
+  if (user.email?.toLowerCase() === normalizedEmail) {
+    throw new Error('You cannot invite yourself to an organization');
+  }
+
   // Get organization details for the email
   const { data: org } = await adminClient
     .from('organizations')

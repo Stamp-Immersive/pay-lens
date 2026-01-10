@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, getUser } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { isOrgAdmin } from './organizations';
 
 export type EmployeeWithDetails = {
@@ -11,6 +12,7 @@ export type EmployeeWithDetails = {
   full_name: string;
   avatar_url: string | null;
   department: string | null;
+  role: 'owner' | 'admin' | 'employee';
   annual_salary: number;
   tax_code: string;
   default_pension_percent: number;
@@ -40,6 +42,7 @@ export async function getEmployees(orgId: string): Promise<EmployeeWithDetails[]
     .from('organization_members')
     .select(`
       profile_id,
+      role,
       profiles:profile_id (
         id,
         email,
@@ -89,6 +92,7 @@ export async function getEmployees(orgId: string): Promise<EmployeeWithDetails[]
       full_name: profile?.full_name || '',
       avatar_url: profile?.avatar_url || null,
       department: profile?.department || null,
+      role: member.role as 'owner' | 'admin' | 'employee',
       annual_salary: empDetails?.annual_salary ? Number(empDetails.annual_salary) : 0,
       tax_code: empDetails?.tax_code || '1257L',
       default_pension_percent: empDetails?.default_pension_percent ? Number(empDetails.default_pension_percent) : 5,
@@ -107,15 +111,34 @@ export async function getEmployee(orgId: string, profileId: string): Promise<Emp
   await requireOrgAdmin(orgId);
   const supabase = await createClient();
 
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('id, email, full_name, avatar_url, department')
-    .eq('id', profileId)
+  // Get member with profile info
+  const { data: member, error: memberError } = await supabase
+    .from('organization_members')
+    .select(`
+      role,
+      profiles:profile_id (
+        id,
+        email,
+        full_name,
+        avatar_url,
+        department
+      )
+    `)
+    .eq('organization_id', orgId)
+    .eq('profile_id', profileId)
     .single();
 
-  if (profileError || !profile) {
+  if (memberError || !member) {
     return null;
   }
+
+  const profile = member.profiles as unknown as {
+    id: string;
+    email: string;
+    full_name: string;
+    avatar_url: string | null;
+    department: string | null;
+  };
 
   const { data: details } = await supabase
     .from('employee_details')
@@ -131,6 +154,7 @@ export async function getEmployee(orgId: string, profileId: string): Promise<Emp
     full_name: profile.full_name || '',
     avatar_url: profile.avatar_url,
     department: profile.department,
+    role: member.role as 'owner' | 'admin' | 'employee',
     annual_salary: details?.annual_salary ? Number(details.annual_salary) : 0,
     tax_code: details?.tax_code || '1257L',
     default_pension_percent: details?.default_pension_percent ? Number(details.default_pension_percent) : 5,
@@ -164,13 +188,14 @@ export async function upsertEmployeeDetails(
   await requireOrgAdmin(orgId);
   const supabase = await createClient();
 
-  // Update profile info if provided
+  // Update profile info if provided - use admin client to bypass RLS
   if (data.department !== undefined || data.full_name !== undefined) {
     const profileUpdate: Record<string, string> = {};
     if (data.department !== undefined) profileUpdate.department = data.department;
     if (data.full_name !== undefined) profileUpdate.full_name = data.full_name;
 
-    const { error: profileError } = await supabase
+    const adminClient = createAdminClient();
+    const { error: profileError } = await adminClient
       .from('profiles')
       .update(profileUpdate)
       .eq('id', profileId);

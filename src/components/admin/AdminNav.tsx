@@ -26,7 +26,7 @@ export function AdminNav({ notificationCounts }: AdminNavProps) {
       title: 'Employees',
       href: `/dashboard/${organization.slug}/admin/employees`,
       icon: Users,
-      badge: (notificationCounts?.employeesNeedingSetup || 0) + (notificationCounts?.pendingInvites || 0),
+      badge: notificationCounts?.employeesNeedingSetup || 0,
     },
     {
       title: 'Payroll',

@@ -226,6 +226,7 @@ export function EmployeesList({ employees, orgId, pendingInvites = [] }: Employe
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Role</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Annual Salary</TableHead>
                   <TableHead>Tax Code</TableHead>
@@ -242,6 +243,11 @@ export function EmployeesList({ employees, orgId, pendingInvites = [] }: Employe
                         <p className="font-medium">{employee.full_name || 'Not set'}</p>
                         <p className="text-xs text-zinc-500">{employee.email}</p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {employee.role}
+                      </Badge>
                     </TableCell>
                     <TableCell>{employee.department || '-'}</TableCell>
                     <TableCell>

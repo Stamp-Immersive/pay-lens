@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,24 +39,26 @@ export function EmployeeForm({ open, onOpenChange, employee, mode, orgId }: Empl
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    full_name: employee?.full_name || '',
-    department: employee?.department || '',
-    annual_salary: employee?.annual_salary?.toString() || '',
-    tax_code: employee?.tax_code || '1257L',
-    default_pension_percent: employee?.default_pension_percent?.toString() || '5',
-    employer_pension_percent: employee?.employer_pension_percent?.toString() || '3',
-    bank_account_name: employee?.bank_account_name || '',
-    bank_account_number: employee?.bank_account_number || '',
-    bank_sort_code: employee?.bank_sort_code || '',
-    start_date: employee?.start_date || '',
+    full_name: '',
+    department: '',
+    job_title: '',
+    annual_salary: '',
+    tax_code: '1257L',
+    default_pension_percent: '5',
+    employer_pension_percent: '3',
+    bank_account_name: '',
+    bank_account_number: '',
+    bank_sort_code: '',
+    start_date: '',
   });
 
-  // Reset form when dialog opens with new data
-  const handleOpenChange = (open: boolean) => {
+  // Sync form data when employee prop changes or dialog opens
+  useEffect(() => {
     if (open && employee) {
       setFormData({
         full_name: employee.full_name || '',
         department: employee.department || '',
+        job_title: employee.job_title || '',
         annual_salary: employee.annual_salary?.toString() || '',
         tax_code: employee.tax_code || '1257L',
         default_pension_percent: employee.default_pension_percent?.toString() || '5',
@@ -66,9 +68,15 @@ export function EmployeeForm({ open, onOpenChange, employee, mode, orgId }: Empl
         bank_sort_code: employee.bank_sort_code || '',
         start_date: employee.start_date || '',
       });
+      setError(null);
     }
-    setError(null);
-    onOpenChange(open);
+  }, [open, employee]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      setError(null);
+    }
+    onOpenChange(newOpen);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,6 +90,7 @@ export function EmployeeForm({ open, onOpenChange, employee, mode, orgId }: Empl
       await upsertEmployeeDetails(orgId, employee.profile_id, {
         full_name: formData.full_name,
         department: formData.department,
+        job_title: formData.job_title || undefined,
         annual_salary: parseFloat(formData.annual_salary) || 0,
         tax_code: formData.tax_code,
         default_pension_percent: parseFloat(formData.default_pension_percent) || 5,
@@ -132,14 +141,24 @@ export function EmployeeForm({ open, onOpenChange, employee, mode, orgId }: Empl
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="job_title">Job Title</Label>
                 <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="Engineering"
+                  id="job_title"
+                  value={formData.job_title}
+                  onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+                  placeholder="Senior Developer"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Department</Label>
+              <Input
+                id="department"
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                placeholder="Engineering"
+              />
             </div>
 
             {/* Salary & Tax */}

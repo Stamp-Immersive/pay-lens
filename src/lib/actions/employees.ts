@@ -12,6 +12,7 @@ export type EmployeeWithDetails = {
   full_name: string;
   avatar_url: string | null;
   department: string | null;
+  job_title: string | null;
   role: 'owner' | 'admin' | 'employee';
   annual_salary: number;
   tax_code: string;
@@ -92,6 +93,7 @@ export async function getEmployees(orgId: string): Promise<EmployeeWithDetails[]
       full_name: profile?.full_name || '',
       avatar_url: profile?.avatar_url || null,
       department: profile?.department || null,
+      job_title: empDetails?.job_title || null,
       role: member.role as 'owner' | 'admin' | 'employee',
       annual_salary: empDetails?.annual_salary ? Number(empDetails.annual_salary) : 0,
       tax_code: empDetails?.tax_code || '1257L',
@@ -154,6 +156,7 @@ export async function getEmployee(orgId: string, profileId: string): Promise<Emp
     full_name: profile.full_name || '',
     avatar_url: profile.avatar_url,
     department: profile.department,
+    job_title: details?.job_title || null,
     role: member.role as 'owner' | 'admin' | 'employee',
     annual_salary: details?.annual_salary ? Number(details.annual_salary) : 0,
     tax_code: details?.tax_code || '1257L',
@@ -183,6 +186,7 @@ export async function upsertEmployeeDetails(
     is_active?: boolean;
     department?: string;
     full_name?: string;
+    job_title?: string;
   }
 ) {
   await requireOrgAdmin(orgId);
@@ -226,6 +230,7 @@ export async function upsertEmployeeDetails(
     bank_sort_code: data.bank_sort_code || null,
     start_date: data.start_date || null,
     is_active: data.is_active ?? true,
+    job_title: data.job_title || null,
   };
 
   let error;

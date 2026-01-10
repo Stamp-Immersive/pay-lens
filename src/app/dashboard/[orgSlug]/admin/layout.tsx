@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getUser, getUserProfile } from '@/lib/supabase/server';
-import { getOrganizationBySlug, getMyRole } from '@/lib/actions/organizations';
+import { getOrganizationBySlug, getMyRole, getAdminNotificationCounts } from '@/lib/actions/organizations';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,8 @@ export default async function AdminLayout({
     redirect(`/dashboard/${orgSlug}/employee`);
   }
 
+  const notificationCounts = await getAdminNotificationCounts(organization.id);
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -58,7 +60,7 @@ export default async function AdminLayout({
           </div>
         </header>
 
-        <AdminNav />
+        <AdminNav notificationCounts={notificationCounts} />
 
         {children}
       </div>

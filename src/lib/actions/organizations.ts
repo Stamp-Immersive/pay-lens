@@ -515,3 +515,75 @@ export async function getDefaultOrganization(): Promise<Organization | null> {
   const adminOrg = orgs.find((o) => o.role === 'owner' || o.role === 'admin');
   return adminOrg?.organization || orgs[0].organization;
 }
+
+// Get notification counts for admin nav badges
+export type AdminNotificationCounts = {
+  employeesNeedingSetup: number;
+  pendingInvites: number;
+  pendingPayroll: number; // draft or preview periods
+  readyForPayment: number; // approved periods
+};
+
+export async function getAdminNotificationCounts(orgId: string): Promise<AdminNotificationCounts> {
+  const user = await getUser();
+  if (!user) return { employeesNeedingSetup: 0, pendingInvites: 0, pendingPayroll: 0, readyForPayment: 0 };
+
+  const supabase = await createClient();
+
+  // Get employees needing setup (members with role=employee but no employee_details)
+  const { data: members } = await supabase
+    .from('organization_members')
+    .select('profile_id')
+    .eq('organization_id', orgId)
+    .eq('role', 'employee')
+    .not('accepted_at', 'is', null);
+
+  const profileIds = members?.map((m) => m.profile_id) || [];
+
+  let employeesNeedingSetup = 0;
+  if (profileIds.length > 0) {
+    const { data: details } = await supabase
+      .from('employee_details')
+      .select('profile_id')
+      .eq('organization_id', orgId)
+      .in('profile_id', profileIds);
+
+    const setupProfileIds = new Set(details?.map((d) => d.profile_id) || []);
+    employeesNeedingSetup = profileIds.filter((id) => !setupProfileIds.has(id)).length;
+  }
+
+  // Get pending invites (organization_members with null accepted_at + pending_invites)
+  const { count: memberInvites } = await supabase
+    .from('organization_members')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId)
+    .is('accepted_at', null);
+
+  const { count: emailInvites } = await supabase
+    .from('pending_invites')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId);
+
+  const pendingInvites = (memberInvites || 0) + (emailInvites || 0);
+
+  // Get payroll periods in draft/preview
+  const { count: pendingPayroll } = await supabase
+    .from('payroll_periods')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId)
+    .in('status', ['draft', 'preview']);
+
+  // Get approved periods ready for payment
+  const { count: readyForPayment } = await supabase
+    .from('payroll_periods')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId)
+    .eq('status', 'approved');
+
+  return {
+    employeesNeedingSetup,
+    pendingInvites,
+    pendingPayroll: pendingPayroll || 0,
+    readyForPayment: readyForPayment || 0,
+  };
+}

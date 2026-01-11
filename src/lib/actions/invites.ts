@@ -27,38 +27,6 @@ export async function getMyPendingInvites(): Promise<PendingInvite[]> {
 
   const supabase = await createClient();
 
-  // Get all membership records for this user
-  const { data: allMemberships, error: membershipError } = await supabase
-    .from('organization_members')
-    .select('id, organization_id, accepted_at')
-    .eq('profile_id', user.id);
-
-  if (membershipError) {
-    console.error('Error fetching memberships:', membershipError);
-    return [];
-  }
-
-  // Find orgs where user is accepted (has accepted_at)
-  const acceptedOrgIds = new Set(
-    (allMemberships || [])
-      .filter(m => m.accepted_at !== null)
-      .map(m => m.organization_id)
-  );
-
-  // Find duplicate pending invites (pending invite for org user is already in)
-  const duplicateInviteIds = (allMemberships || [])
-    .filter(m => m.accepted_at === null && acceptedOrgIds.has(m.organization_id))
-    .map(m => m.id);
-
-  // Delete duplicate pending invites
-  if (duplicateInviteIds.length > 0) {
-    await supabase
-      .from('organization_members')
-      .delete()
-      .in('id', duplicateInviteIds);
-  }
-
-  // Get remaining pending invites with org details
   const { data, error } = await supabase
     .from('organization_members')
     .select(`
@@ -122,44 +90,28 @@ export async function acceptInvite(inviteId: string): Promise<{ success: boolean
 
   const supabase = await createClient();
 
-  // Verify this invite belongs to the current user and get org info
-  const { data: invite } = await supabase
+  // Get the invite and org slug in one query
+  const { data: invite, error: fetchError } = await supabase
     .from('organization_members')
-    .select(`
-      id,
-      organization_id,
-      organizations (slug)
-    `)
+    .select('id, organization_id, organizations(slug)')
     .eq('id', inviteId)
     .eq('profile_id', user.id)
     .is('accepted_at', null)
     .single();
 
-  if (!invite) {
+  if (fetchError || !invite) {
     return { success: false };
   }
 
-  // Check if user is already an accepted member of this org
-  const { data: existingMembership } = await supabase
+  // Accept the invite
+  const { error: updateError } = await supabase
     .from('organization_members')
-    .select('id')
-    .eq('organization_id', invite.organization_id)
-    .eq('profile_id', user.id)
-    .not('accepted_at', 'is', null)
-    .maybeSingle();
+    .update({ accepted_at: new Date().toISOString() })
+    .eq('id', inviteId)
+    .eq('profile_id', user.id);
 
-  if (existingMembership) {
-    // User is already a member - delete this duplicate pending invite
-    await supabase
-      .from('organization_members')
-      .delete()
-      .eq('id', inviteId);
-  } else {
-    // Accept the invite normally
-    await supabase
-      .from('organization_members')
-      .update({ accepted_at: new Date().toISOString() })
-      .eq('id', inviteId);
+  if (updateError) {
+    return { success: false };
   }
 
   revalidatePath('/invites');

@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
-import { getOrganizationBySlug } from '@/lib/actions/organizations';
+import { getOrganizationBySlug, getAdminNotificationDetails } from '@/lib/actions/organizations';
 import { getPaymentPeriods, getPaymentStats } from '@/lib/actions/payments';
 import { PaymentsList } from '@/components/admin/PaymentsList';
+import { NotificationBanner } from '@/components/admin/NotificationBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,9 +18,10 @@ export default async function PaymentsPage({
     notFound();
   }
 
-  const [periods, stats] = await Promise.all([
+  const [periods, stats, notificationDetails] = await Promise.all([
     getPaymentPeriods(organization.id),
     getPaymentStats(organization.id),
+    getAdminNotificationDetails(organization.id),
   ]);
 
   return (
@@ -28,6 +30,7 @@ export default async function PaymentsPage({
         <h2 className="text-2xl font-bold">Payments</h2>
         <p className="text-zinc-500">Process and track salary payments</p>
       </div>
+      <NotificationBanner details={notificationDetails} page="payments" />
       <PaymentsList periods={periods} stats={stats} orgId={organization.id} />
     </div>
   );

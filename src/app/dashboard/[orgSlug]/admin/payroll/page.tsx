@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
-import { getOrganizationBySlug } from '@/lib/actions/organizations';
+import { getOrganizationBySlug, getAdminNotificationDetails } from '@/lib/actions/organizations';
 import { getPayrollPeriods } from '@/lib/actions/payroll';
 import { PayrollPeriodsList } from '@/components/admin/PayrollPeriodsList';
+import { NotificationBanner } from '@/components/admin/NotificationBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +33,11 @@ export default async function PayrollPage({
     throw new Error(`Failed to fetch payroll periods: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
+  const notificationDetails = await getAdminNotificationDetails(organization.id);
+
   return (
     <div>
+      <NotificationBanner details={notificationDetails} page="payroll" />
       <PayrollPeriodsList periods={periods} orgId={organization.id} />
     </div>
   );

@@ -520,13 +520,41 @@ export async function getDefaultOrganization(): Promise<Organization | null> {
 export type AdminNotificationCounts = {
   employeesNeedingSetup: number;
   pendingInvites: number;
-  pendingPayroll: number; // draft or preview periods
+  pendingPayroll: number; // draft periods OR preview periods past deadline
   readyForPayment: number; // approved periods
 };
 
+export type AdminNotificationDetails = {
+  employees: {
+    needingSetup: number;
+    pendingInvites: number;
+  };
+  payroll: {
+    draftPeriods: number;
+    expiredPreviewPeriods: number;
+  };
+  payments: {
+    readyForPayment: number;
+  };
+};
+
 export async function getAdminNotificationCounts(orgId: string): Promise<AdminNotificationCounts> {
+  const details = await getAdminNotificationDetails(orgId);
+  return {
+    employeesNeedingSetup: details.employees.needingSetup,
+    pendingInvites: details.employees.pendingInvites,
+    pendingPayroll: details.payroll.draftPeriods + details.payroll.expiredPreviewPeriods,
+    readyForPayment: details.payments.readyForPayment,
+  };
+}
+
+export async function getAdminNotificationDetails(orgId: string): Promise<AdminNotificationDetails> {
   const user = await getUser();
-  if (!user) return { employeesNeedingSetup: 0, pendingInvites: 0, pendingPayroll: 0, readyForPayment: 0 };
+  if (!user) return {
+    employees: { needingSetup: 0, pendingInvites: 0 },
+    payroll: { draftPeriods: 0, expiredPreviewPeriods: 0 },
+    payments: { readyForPayment: 0 },
+  };
 
   const supabase = await createClient();
 
@@ -566,12 +594,23 @@ export async function getAdminNotificationCounts(orgId: string): Promise<AdminNo
 
   const pendingInvites = (memberInvites || 0) + (emailInvites || 0);
 
-  // Get payroll periods in draft/preview
-  const { count: pendingPayroll } = await supabase
+  // Get payroll periods needing attention:
+  // 1. Draft periods (need payslips generated)
+  const { count: draftPeriods } = await supabase
     .from('payroll_periods')
     .select('id', { count: 'exact', head: true })
     .eq('organization_id', orgId)
-    .in('status', ['draft', 'preview']);
+    .eq('status', 'draft');
+
+  // 2. Preview periods past adjustment deadline (need approval)
+  const today = new Date().toISOString().split('T')[0];
+  const { count: expiredPreviewPeriods } = await supabase
+    .from('payroll_periods')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId)
+    .eq('status', 'preview')
+    .not('adjustment_deadline', 'is', null)
+    .lt('adjustment_deadline', today);
 
   // Get approved periods ready for payment
   const { count: readyForPayment } = await supabase
@@ -581,9 +620,16 @@ export async function getAdminNotificationCounts(orgId: string): Promise<AdminNo
     .eq('status', 'approved');
 
   return {
-    employeesNeedingSetup,
-    pendingInvites,
-    pendingPayroll: pendingPayroll || 0,
-    readyForPayment: readyForPayment || 0,
+    employees: {
+      needingSetup: employeesNeedingSetup,
+      pendingInvites,
+    },
+    payroll: {
+      draftPeriods: draftPeriods || 0,
+      expiredPreviewPeriods: expiredPreviewPeriods || 0,
+    },
+    payments: {
+      readyForPayment: readyForPayment || 0,
+    },
   };
 }

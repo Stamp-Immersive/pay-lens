@@ -38,11 +38,8 @@ function TabsList({
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, children, ...props }, forwardedRef) => {
-  const internalRef = React.useRef<HTMLButtonElement>(null);
-  const ref = (forwardedRef as React.RefObject<HTMLButtonElement>) || internalRef;
-
-  const { spotlightStyle, handlers } = useSpotlight(ref, {
+>(({ className, children, ...props }, ref) => {
+  const { spotlightStyle, handlers } = useSpotlight({
     size: 100,
     opacity: 0.25,
   });

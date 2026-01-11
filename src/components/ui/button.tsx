@@ -44,11 +44,8 @@ interface ButtonProps extends React.ComponentProps<"button">, VariantProps<typeo
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", asChild = false, children, ...props }, forwardedRef) => {
-    const internalRef = React.useRef<HTMLButtonElement>(null);
-    const ref = (forwardedRef as React.RefObject<HTMLButtonElement>) || internalRef;
-
-    const { spotlightStyle, handlers } = useSpotlight(ref, {
+  ({ className, variant = "default", size = "default", asChild = false, children, ...props }, ref) => {
+    const { spotlightStyle, handlers } = useSpotlight({
       size: 120,
       opacity: 0.3,
     });
@@ -56,6 +53,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     if (asChild) {
       return (
         <Slot
+          ref={ref}
           data-slot="button"
           data-variant={variant}
           data-size={size}

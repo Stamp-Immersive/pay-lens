@@ -66,11 +66,8 @@ const DropdownMenuItem = React.forwardRef<
     inset?: boolean
     variant?: "default" | "destructive"
   }
->(({ className, inset, variant = "default", children, ...props }, forwardedRef) => {
-  const internalRef = React.useRef<HTMLDivElement>(null);
-  const ref = (forwardedRef as React.RefObject<HTMLDivElement>) || internalRef;
-
-  const { spotlightStyle, handlers } = useSpotlight(ref, {
+>(({ className, inset, variant = "default", children, ...props }, ref) => {
+  const { spotlightStyle, handlers } = useSpotlight({
     size: 100,
     opacity: 0.2,
   });

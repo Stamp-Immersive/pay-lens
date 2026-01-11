@@ -93,102 +93,117 @@ export async function getMyPendingInvites(): Promise<PendingInvite[]> {
 }
 
 // Accept an invitation
-export async function acceptInvite(inviteId: string) {
-  const user = await getUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const supabase = await createClient();
-
-  // Verify this invite belongs to the current user
-  const { data: invite, error: fetchError } = await supabase
-    .from('organization_members')
-    .select('id, organization_id, profile_id')
-    .eq('id', inviteId)
-    .eq('profile_id', user.id)
-    .is('accepted_at', null)
-    .single();
-
-  if (fetchError || !invite) {
-    throw new Error('Invite not found or already accepted');
-  }
-
-  // Check if user is already an accepted member of this org (duplicate record case)
-  const { data: existingMembership } = await supabase
-    .from('organization_members')
-    .select('id')
-    .eq('organization_id', invite.organization_id)
-    .eq('profile_id', user.id)
-    .not('accepted_at', 'is', null)
-    .single();
-
-  if (existingMembership) {
-    // User is already a member - delete this duplicate pending invite
-    await supabase
-      .from('organization_members')
-      .delete()
-      .eq('id', inviteId);
-  } else {
-    // Accept the invite normally
-    const { error: updateError } = await supabase
-      .from('organization_members')
-      .update({ accepted_at: new Date().toISOString() })
-      .eq('id', inviteId);
-
-    if (updateError) {
-      console.error('Error accepting invite:', updateError);
-      throw new Error('Failed to accept invite');
+export async function acceptInvite(inviteId: string): Promise<{ success: boolean; orgSlug?: string }> {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false };
     }
+
+    const supabase = await createClient();
+
+    // Verify this invite belongs to the current user
+    const { data: invite, error: fetchError } = await supabase
+      .from('organization_members')
+      .select('id, organization_id, profile_id')
+      .eq('id', inviteId)
+      .eq('profile_id', user.id)
+      .is('accepted_at', null)
+      .single();
+
+    if (fetchError || !invite) {
+      console.error('Invite fetch error:', fetchError);
+      return { success: false };
+    }
+
+    // Check if user is already an accepted member of this org (duplicate record case)
+    const { data: existingMembership } = await supabase
+      .from('organization_members')
+      .select('id')
+      .eq('organization_id', invite.organization_id)
+      .eq('profile_id', user.id)
+      .not('accepted_at', 'is', null)
+      .single();
+
+    if (existingMembership) {
+      // User is already a member - delete this duplicate pending invite
+      await supabase
+        .from('organization_members')
+        .delete()
+        .eq('id', inviteId);
+    } else {
+      // Accept the invite normally
+      const { error: updateError } = await supabase
+        .from('organization_members')
+        .update({ accepted_at: new Date().toISOString() })
+        .eq('id', inviteId);
+
+      if (updateError) {
+        console.error('Error accepting invite:', updateError);
+        return { success: false };
+      }
+    }
+
+    revalidatePath('/invites');
+    revalidatePath('/dashboard');
+
+    // Return the org slug for redirect
+    const adminClient = createAdminClient();
+    const { data: org } = await adminClient
+      .from('organizations')
+      .select('slug')
+      .eq('id', invite.organization_id)
+      .single();
+
+    return { success: true, orgSlug: org?.slug || undefined };
+  } catch (error) {
+    console.error('acceptInvite error:', error);
+    return { success: false };
   }
-
-  revalidatePath('/invites');
-  revalidatePath('/', 'layout');
-
-  // Return the org slug for redirect
-  const adminClient = createAdminClient();
-  const { data: org } = await adminClient
-    .from('organizations')
-    .select('slug')
-    .eq('id', invite.organization_id)
-    .single();
-
-  return { success: true, orgSlug: org?.slug };
 }
 
 // Decline an invitation
-export async function declineInvite(inviteId: string) {
-  const user = await getUser();
-  if (!user) throw new Error('Not authenticated');
+export async function declineInvite(inviteId: string): Promise<{ success: boolean }> {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false };
+    }
 
-  const supabase = await createClient();
+    const supabase = await createClient();
 
-  // Verify this invite belongs to the current user
-  const { data: invite, error: fetchError } = await supabase
-    .from('organization_members')
-    .select('id, profile_id')
-    .eq('id', inviteId)
-    .eq('profile_id', user.id)
-    .is('accepted_at', null)
-    .single();
+    // Verify this invite belongs to the current user
+    const { data: invite, error: fetchError } = await supabase
+      .from('organization_members')
+      .select('id, profile_id')
+      .eq('id', inviteId)
+      .eq('profile_id', user.id)
+      .is('accepted_at', null)
+      .single();
 
-  if (fetchError || !invite) {
-    throw new Error('Invite not found or already accepted');
+    if (fetchError || !invite) {
+      return { success: false };
+    }
+
+    // Delete the invite
+    const { error: deleteError } = await supabase
+      .from('organization_members')
+      .delete()
+      .eq('id', inviteId);
+
+    if (deleteError) {
+      console.error('Error declining invite:', deleteError);
+      return { success: false };
+    }
+
+    revalidatePath('/invites');
+    revalidatePath('/dashboard');
+
+    return { success: true };
+  } catch (error) {
+    console.error('declineInvite error:', error);
+    return { success: false };
   }
-
-  // Delete the invite
-  const { error: deleteError } = await supabase
-    .from('organization_members')
-    .delete()
-    .eq('id', inviteId);
-
-  if (deleteError) {
-    console.error('Error declining invite:', deleteError);
-    throw new Error('Failed to decline invite');
-  }
-
-  revalidatePath('/invites');
-  revalidatePath('/', 'layout');
-
-  return { success: true };
 }
 
 // Convert pending_invites to organization_members when user signs up

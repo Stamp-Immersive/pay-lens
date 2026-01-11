@@ -29,16 +29,20 @@ export function PendingInvitesBanner({ invites }: PendingInvitesBannerProps) {
     setLoading(inviteId);
     try {
       const result = await acceptInvite(inviteId);
-      setLocalInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
-      // Use hard navigation to bypass Next.js Router Cache
-      if (result.orgSlug) {
-        window.location.href = `/dashboard/${result.orgSlug}/employee`;
+      if (result.success) {
+        setLocalInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+        // Use hard navigation to bypass Next.js Router Cache
+        if (result.orgSlug) {
+          window.location.href = `/dashboard/${result.orgSlug}/employee`;
+        } else {
+          window.location.reload();
+        }
       } else {
-        window.location.reload();
+        console.error('Failed to accept invite');
+        setLoading(null);
       }
     } catch (error) {
       console.error('Failed to accept invite:', error);
-    } finally {
       setLoading(null);
     }
   }

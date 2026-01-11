@@ -32,11 +32,16 @@ export default function InvitesPage() {
     setProcessing(inviteId);
     try {
       const result = await acceptInvite(inviteId);
-      // Use hard navigation to bypass Next.js Router Cache
-      if (result.orgSlug) {
-        window.location.href = `/dashboard/${result.orgSlug}/employee`;
+      if (result.success) {
+        // Use hard navigation to bypass Next.js Router Cache
+        if (result.orgSlug) {
+          window.location.href = `/dashboard/${result.orgSlug}/employee`;
+        } else {
+          window.location.href = '/dashboard';
+        }
       } else {
-        window.location.href = '/dashboard';
+        console.error('Failed to accept invite');
+        setProcessing(null);
       }
     } catch (err) {
       console.error('Failed to accept invite:', err);

@@ -21,7 +21,9 @@
       "WebFetch(domain:fonts.google.com)",
       "WebSearch",
       "Bash(node -e:*)",
-      "Bash(node capture-logo.js:*)"
+      "Bash(node capture-logo.js:*)",
+      "Bash(cat:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }

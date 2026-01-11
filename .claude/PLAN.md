@@ -1,8 +1,8 @@
-# PayLens - Payroll Management System
+# PayAdjust - Payroll Management System
 
 ## Product Overview
 
-PayLens is a payroll management system that gives employees visibility and flexibility over their pay before it's processed. Admins manage payroll generation and processing, while employees can adjust pension contributions and see tax implications in real-time.
+PayAdjust is a payroll management system that gives employees visibility and flexibility over their pay before it's processed. Admins manage payroll generation and processing, while employees can adjust pension contributions and see tax implications in real-time.
 
 ### Core Concept
 - **Admins add employees** to their organization (employees don't self-register)
@@ -25,10 +25,11 @@ PayLens is a payroll management system that gives employees visibility and flexi
 All core functionality is implemented with multi-organization support. The app is live and deployed.
 
 ### Deployment Info
-- **Live URL:** https://pay-lens-bice.vercel.app
+- **Live URL:** https://payadjust.com (custom domain)
+- **Vercel URL:** https://pay-lens-bice.vercel.app (legacy)
 - **GitHub:** https://github.com/Stamp-Immersive/pay-lens
 - **Hosting:** Vercel (auto-deploys from main branch)
-- **Database:** Supabase (hosted)
+- **Database:** Supabase (hosted, free tier)
 - **Email:** Resend (for invite emails)
 
 ### Access Control
@@ -49,8 +50,35 @@ To add more users, edit `src/app/auth/callback/route.ts` → `allowedEmails` arr
 
 **Database Status:** All migrations applied (001_payroll_schema.sql, 002_multi_org.sql, 003_fix_profiles_rls.sql, 004_pending_invites.sql, 005_add_job_title.sql)
 
-### Recent Session (Jan 2026)
-Completed job_title feature for employees:
+### Recent Session - Branding & Custom Domain (Jan 2026)
+
+#### Rebranding to PayAdjust
+- [x] Connected custom domain payadjust.com to Vercel
+- [x] Renamed all text from "PayLens" to "PayAdjust" throughout the app
+- [x] Updated email sender to `PayAdjust <noreply@payadjust.com>`
+- [x] Updated environment variables for new domain
+
+#### Brand Identity
+- [x] Added Stack Sans Notch font (SemiBold 600) via Google Fonts
+- [x] Created `src/lib/fonts.ts` for font configuration
+- [x] Created `src/components/Logo.tsx` with black/silver gradient text effect
+- [x] Generated favicon with Puppeteer (PA letters, dark background, gradient)
+- [x] Organized brand assets in `public/brand/` folder:
+  - `logo.png` - Full "PayAdjust" logo
+  - `favicon.png` - "PA" icon (512x512)
+  - `icon-512.png` - High-res icon
+- [x] Added `capture-logo.js` script for regenerating logos with correct font
+
+#### UI Enhancements
+- [x] Added dynamic spotlight hover effect to interactive elements
+- [x] Created `src/hooks/useSpotlight.ts` for mouse-tracking spotlight
+- [x] Applied spotlight to: buttons, tabs, dropdown menu items, admin nav links
+- [x] Fixed badge clipping on admin nav tabs (moved badge outside overflow-hidden)
+
+#### Known Limitations
+- **Google OAuth consent screen** shows Supabase URL ("continue to szxobwgbaeowrxyndijo.supabase.co") - this is a Supabase free tier limitation. Custom auth domains require Supabase Pro plan.
+
+### Previous Session - Job Title Feature (Jan 2026)
 - [x] Created migration `005_add_job_title.sql` to add job_title column to employee_details
 - [x] Updated `EmployeeWithDetails` type to include job_title
 - [x] Updated `getEmployees()` and `getEmployee()` to return job_title
@@ -212,8 +240,13 @@ This phase adds support for multiple organizations and contractors.
   - `PayslipHistory.tsx` - Historical payslips table
 
 - `src/components/OrganizationSwitcher.tsx` - Org dropdown for multi-org users
+- `src/components/Logo.tsx` - PayAdjust logo with Stack Sans Notch font and gradient
 
 - `src/contexts/OrganizationContext.tsx` - Organization context provider
+
+- `src/hooks/useSpotlight.ts` - Mouse-tracking spotlight effect for interactive elements
+
+- `src/lib/fonts.ts` - Google Fonts configuration (Stack Sans Notch)
 
 ### Database
 - `supabase/setup.sql` - Initial profiles table and RLS
@@ -312,7 +345,7 @@ This phase adds support for multiple organizations and contractors.
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
 SUPABASE_SERVICE_ROLE_KEY=xxx
-NEXT_PUBLIC_APP_URL=https://pay-lens-bice.vercel.app
+NEXT_PUBLIC_APP_URL=https://payadjust.com
 RESEND_API_KEY=re_xxx (optional - logs to console if not set)
 ```
 

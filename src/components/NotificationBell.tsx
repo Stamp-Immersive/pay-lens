@@ -9,7 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { acceptInvite, declineInvite, type PendingInvite } from '@/lib/actions/invites';
+import { declineInvite, type PendingInvite } from '@/lib/actions/invites';
 
 type NotificationBellProps = {
   pendingInvites: PendingInvite[];
@@ -31,7 +31,12 @@ export function NotificationBell({ pendingInvites }: NotificationBellProps) {
   async function handleAccept(inviteId: string) {
     setLoading(inviteId);
     try {
-      const result = await acceptInvite(inviteId);
+      const response = await fetch('/api/invites/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      });
+      const result = await response.json();
       if (result.success) {
         setLocalInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
         if (result.orgSlug) {
@@ -39,6 +44,8 @@ export function NotificationBell({ pendingInvites }: NotificationBellProps) {
         } else {
           window.location.reload();
         }
+      } else {
+        console.error('Failed to accept invite:', result.error);
       }
     } catch (error) {
       console.error('Failed to accept invite:', error);

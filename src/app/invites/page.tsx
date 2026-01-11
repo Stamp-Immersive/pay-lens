@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Check, X, Loader2 } from 'lucide-react';
-import { getMyPendingInvites, acceptInvite, declineInvite, type PendingInvite } from '@/lib/actions/invites';
+import { getMyPendingInvites, declineInvite, type PendingInvite } from '@/lib/actions/invites';
 
 export default function InvitesPage() {
   const router = useRouter();
@@ -31,16 +31,20 @@ export default function InvitesPage() {
   async function handleAccept(inviteId: string) {
     setProcessing(inviteId);
     try {
-      const result = await acceptInvite(inviteId);
+      const response = await fetch('/api/invites/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      });
+      const result = await response.json();
       if (result.success) {
-        // Use hard navigation to bypass Next.js Router Cache
         if (result.orgSlug) {
           window.location.href = `/dashboard/${result.orgSlug}/employee`;
         } else {
           window.location.href = '/dashboard';
         }
       } else {
-        console.error('Failed to accept invite');
+        console.error('Failed to accept invite:', result.error);
         setProcessing(null);
       }
     } catch (err) {

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Mail, Check, X, ChevronRight } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { acceptInvite, declineInvite, type PendingInvite } from '@/lib/actions/invites';
+import { declineInvite, type PendingInvite } from '@/lib/actions/invites';
 
 type PendingInvitesBannerProps = {
   invites: PendingInvite[];
@@ -28,17 +28,21 @@ export function PendingInvitesBanner({ invites }: PendingInvitesBannerProps) {
   async function handleAccept(inviteId: string) {
     setLoading(inviteId);
     try {
-      const result = await acceptInvite(inviteId);
+      const response = await fetch('/api/invites/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      });
+      const result = await response.json();
       if (result.success) {
         setLocalInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
-        // Use hard navigation to bypass Next.js Router Cache
         if (result.orgSlug) {
           window.location.href = `/dashboard/${result.orgSlug}/employee`;
         } else {
           window.location.reload();
         }
       } else {
-        console.error('Failed to accept invite');
+        console.error('Failed to accept invite:', result.error);
         setLoading(null);
       }
     } catch (error) {

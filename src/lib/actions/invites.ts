@@ -27,8 +27,18 @@ export async function getMyPendingInvites(): Promise<PendingInvite[]> {
 
   const supabase = await createClient();
 
+  // First, get orgs where user is already an accepted member
+  const { data: acceptedOrgs } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('profile_id', user.id)
+    .not('accepted_at', 'is', null);
+
+  const acceptedOrgIds = (acceptedOrgs || []).map(o => o.organization_id);
+
   // Get invites from organization_members where accepted_at is null
-  const { data, error } = await supabase
+  // and exclude orgs where user is already an accepted member
+  let query = supabase
     .from('organization_members')
     .select(`
       id,
@@ -44,6 +54,13 @@ export async function getMyPendingInvites(): Promise<PendingInvite[]> {
     `)
     .eq('profile_id', user.id)
     .is('accepted_at', null);
+
+  // Exclude orgs where user is already a member
+  if (acceptedOrgIds.length > 0) {
+    query = query.not('organization_id', 'in', `(${acceptedOrgIds.join(',')})`);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching pending invites:', error);

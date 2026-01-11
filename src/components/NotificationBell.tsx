@@ -33,10 +33,11 @@ export function NotificationBell({ pendingInvites }: NotificationBellProps) {
     try {
       const result = await acceptInvite(inviteId);
       setLocalInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+      // Use hard navigation to bypass Next.js Router Cache
       if (result.orgSlug) {
-        router.push(`/dashboard/${result.orgSlug}/employee`);
+        window.location.href = `/dashboard/${result.orgSlug}/employee`;
       } else {
-        router.refresh();
+        window.location.reload();
       }
     } catch (error) {
       console.error('Failed to accept invite:', error);

@@ -314,8 +314,14 @@ export async function createPayrollPeriod(orgId: string, year: number, month: nu
 }
 
 // Generate payslips for all active employees
-export async function generatePayslips(orgId: string, periodId: string) {
-  await requireOrgAdmin(orgId);
+export async function generatePayslips(orgId: string, periodId: string): Promise<{ count?: number; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    console.error('Admin check failed in generatePayslips:', error);
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
   const supabase = await createClient();
 
   // Get the period
@@ -327,11 +333,11 @@ export async function generatePayslips(orgId: string, periodId: string) {
     .single();
 
   if (periodError || !period) {
-    throw new Error('Payroll period not found');
+    return { error: `Payroll period not found: ${periodError?.message || 'No data'}` };
   }
 
   if (period.status !== 'draft') {
-    throw new Error('Can only generate payslips for draft periods');
+    return { error: 'Can only generate payslips for draft periods' };
   }
 
   // Get all active employees with details for this org
@@ -349,18 +355,23 @@ export async function generatePayslips(orgId: string, periodId: string) {
 
   if (empError) {
     console.error('Error fetching employees:', empError);
-    throw new Error('Failed to fetch employees');
+    return { error: `Failed to fetch employees: ${empError.message}` };
   }
 
   if (!employees || employees.length === 0) {
-    throw new Error('No active employees found');
+    return { error: 'No active employees found. Please add employees with payroll details first.' };
   }
 
   // Delete existing payslips for this period
-  await supabase
+  const { error: deleteError } = await supabase
     .from('payslips')
     .delete()
     .eq('payroll_period_id', periodId);
+
+  if (deleteError) {
+    console.error('Error deleting existing payslips:', deleteError);
+    return { error: `Failed to clear existing payslips: ${deleteError.message}` };
+  }
 
   // Generate payslips
   const payslips = employees.map((emp) => {
@@ -386,7 +397,7 @@ export async function generatePayslips(orgId: string, periodId: string) {
 
   if (insertError) {
     console.error('Error inserting payslips:', insertError);
-    throw new Error('Failed to generate payslips');
+    return { error: `Failed to generate payslips: ${insertError.message}` };
   }
 
   // Update period totals
@@ -432,8 +443,14 @@ export async function updatePayrollStatus(
     adjustment_deadline?: string;
     processing_date?: string;
   }
-) {
-  await requireOrgAdmin(orgId);
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    console.error('Admin check failed in updatePayrollStatus:', error);
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
   const supabase = await createClient();
 
   const updateData: Record<string, unknown> = { status };
@@ -471,7 +488,7 @@ export async function updatePayrollStatus(
 
   if (error) {
     console.error('Error updating payroll status:', error);
-    throw new Error('Failed to update payroll status');
+    return { error: `Failed to update payroll status: ${error.message}` };
   }
 
   revalidatePath('/dashboard/[orgSlug]/admin/payroll', 'page');
@@ -480,8 +497,14 @@ export async function updatePayrollStatus(
 }
 
 // Delete a payroll period (only draft)
-export async function deletePayrollPeriod(orgId: string, periodId: string) {
-  await requireOrgAdmin(orgId);
+export async function deletePayrollPeriod(orgId: string, periodId: string): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    console.error('Admin check failed in deletePayrollPeriod:', error);
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
   const supabase = await createClient();
 
   const { data: period } = await supabase
@@ -492,7 +515,7 @@ export async function deletePayrollPeriod(orgId: string, periodId: string) {
     .single();
 
   if (period?.status !== 'draft') {
-    throw new Error('Can only delete draft payroll periods');
+    return { error: 'Can only delete draft payroll periods' };
   }
 
   const { error } = await supabase
@@ -503,7 +526,7 @@ export async function deletePayrollPeriod(orgId: string, periodId: string) {
 
   if (error) {
     console.error('Error deleting payroll period:', error);
-    throw new Error('Failed to delete payroll period');
+    return { error: `Failed to delete payroll period: ${error.message}` };
   }
 
   revalidatePath('/dashboard/[orgSlug]/admin/payroll', 'page');

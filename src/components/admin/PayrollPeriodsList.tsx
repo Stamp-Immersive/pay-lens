@@ -52,7 +52,11 @@ export function PayrollPeriodsList({ periods, orgId }: PayrollPeriodsListProps) 
 
   const handleGeneratePayslips = async (periodId: string) => {
     try {
-      await generatePayslips(orgId, periodId);
+      const result = await generatePayslips(orgId, periodId);
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to generate payslips');
@@ -62,7 +66,11 @@ export function PayrollPeriodsList({ periods, orgId }: PayrollPeriodsListProps) 
   const handleDelete = async (periodId: string) => {
     if (confirm('Are you sure you want to delete this payroll period?')) {
       try {
-        await deletePayrollPeriod(orgId, periodId);
+        const result = await deletePayrollPeriod(orgId, periodId);
+        if (result.error) {
+          alert(result.error);
+          return;
+        }
         router.refresh();
       } catch (err) {
         alert(err instanceof Error ? err.message : 'Failed to delete period');

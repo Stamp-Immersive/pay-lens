@@ -79,7 +79,11 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
   const handleGeneratePayslips = async () => {
     setLoading(true);
     try {
-      await generatePayslips(orgId, period.id);
+      const result = await generatePayslips(orgId, period.id);
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to generate payslips');
@@ -91,7 +95,11 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
   const handleStartPreview = async () => {
     setLoading(true);
     try {
-      await updatePayrollStatus(orgId, period.id, 'preview', dates);
+      const result = await updatePayrollStatus(orgId, period.id, 'preview', dates);
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       setPreviewDialogOpen(false);
       router.refresh();
     } catch (err) {
@@ -107,7 +115,11 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
     }
     setLoading(true);
     try {
-      await updatePayrollStatus(orgId, period.id, 'approved');
+      const result = await updatePayrollStatus(orgId, period.id, 'approved');
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to approve payroll');
@@ -122,7 +134,11 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
     }
     setLoading(true);
     try {
-      await updatePayrollStatus(orgId, period.id, 'processed');
+      const result = await updatePayrollStatus(orgId, period.id, 'processed');
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to process payroll');

@@ -43,6 +43,15 @@ export type PayrollPeriod = {
   created_at: string;
 };
 
+export type PayslipBonus = {
+  id: string;
+  payslip_id: string;
+  description: string;
+  amount: number;
+  created_by?: string;
+  created_at: string;
+};
+
 export type PayslipWithEmployee = {
   id: string;
   payroll_period_id: string;
@@ -68,6 +77,7 @@ export type PayslipWithEmployee = {
     email: string;
     department: string | null;
   };
+  payslip_bonuses?: PayslipBonus[];
 };
 
 // Check if current user is admin of the organization
@@ -246,6 +256,14 @@ export async function getPayrollPeriod(orgId: string, periodId: string) {
         full_name,
         email,
         department
+      ),
+      payslip_bonuses (
+        id,
+        payslip_id,
+        description,
+        amount,
+        created_by,
+        created_at
       )
     `)
     .eq('payroll_period_id', periodId)
@@ -785,6 +803,373 @@ export async function regeneratePayslip(
     console.error('Error inserting payslip:', insertError);
     return { error: `Failed to regenerate payslip: ${insertError.message}` };
   }
+
+  // Recalculate period totals
+  await recalculatePeriodTotals(orgId, periodId);
+
+  return { success: true };
+}
+
+// =============================================
+// BONUS MANAGEMENT
+// =============================================
+
+// Helper to recalculate a single payslip after bonus changes
+async function recalculatePayslipWithBonuses(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  payslipId: string,
+  orgId: string
+) {
+  // Get the payslip with employee details
+  const { data: payslip } = await supabase
+    .from('payslips')
+    .select(`
+      *,
+      payroll_periods!inner (organization_id)
+    `)
+    .eq('id', payslipId)
+    .single();
+
+  if (!payslip) return;
+
+  // Get all bonuses for this payslip
+  const { data: bonuses } = await supabase
+    .from('payslip_bonuses')
+    .select('amount')
+    .eq('payslip_id', payslipId);
+
+  const totalBonus = (bonuses || []).reduce((sum, b) => sum + Number(b.amount), 0);
+
+  // Get employee details for recalculation
+  const { data: employee } = await supabase
+    .from('employee_details')
+    .select('annual_salary, tax_code, default_pension_percent, employer_pension_percent')
+    .eq('profile_id', payslip.employee_id)
+    .eq('organization_id', orgId)
+    .single();
+
+  if (!employee) return;
+
+  // Recalculate payslip with new bonus total
+  const calc = calculatePayslip(
+    Number(employee.annual_salary),
+    employee.tax_code,
+    Number(payslip.pension_percent), // Keep current pension percent (may have been adjusted)
+    Number(employee.employer_pension_percent),
+    totalBonus,
+    Number(payslip.other_additions),
+    Number(payslip.other_deductions)
+  );
+
+  // Update the payslip (excluding employer_ni which isn't stored)
+  const { employer_ni: _employerNi, ...payslipData } = calc;
+
+  await supabase
+    .from('payslips')
+    .update(payslipData)
+    .eq('id', payslipId);
+}
+
+// Add a bonus to a single payslip
+export async function addBonusToPayslip(
+  orgId: string,
+  payslipId: string,
+  description: string,
+  amount: number
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
+  if (!description.trim()) {
+    return { error: 'Description is required' };
+  }
+
+  if (amount <= 0) {
+    return { error: 'Amount must be greater than 0' };
+  }
+
+  const user = await getUser();
+  const supabase = await createClient();
+
+  // Verify the payslip exists and belongs to a draft/preview period in this org
+  const { data: payslip, error: payslipError } = await supabase
+    .from('payslips')
+    .select(`
+      id,
+      payroll_period_id,
+      payroll_periods!inner (
+        id,
+        organization_id,
+        status
+      )
+    `)
+    .eq('id', payslipId)
+    .single();
+
+  if (payslipError || !payslip) {
+    return { error: 'Payslip not found' };
+  }
+
+  const period = payslip.payroll_periods as unknown as { id: string; organization_id: string; status: string };
+
+  if (period.organization_id !== orgId) {
+    return { error: 'Payslip does not belong to this organization' };
+  }
+
+  if (period.status !== 'draft' && period.status !== 'preview') {
+    return { error: 'Can only add bonuses to payslips in draft or preview periods' };
+  }
+
+  // Insert the bonus
+  const { error: insertError } = await supabase
+    .from('payslip_bonuses')
+    .insert({
+      payslip_id: payslipId,
+      description: description.trim(),
+      amount: round(amount),
+      created_by: user?.id,
+    });
+
+  if (insertError) {
+    console.error('Error inserting bonus:', insertError);
+    return { error: `Failed to add bonus: ${insertError.message}` };
+  }
+
+  // Recalculate the payslip
+  await recalculatePayslipWithBonuses(supabase, payslipId, orgId);
+
+  // Recalculate period totals
+  await recalculatePeriodTotals(orgId, period.id);
+
+  return { success: true };
+}
+
+// Add a bonus to all payslips in a period
+export async function addBonusToAllPayslips(
+  orgId: string,
+  periodId: string,
+  description: string,
+  amount: number
+): Promise<{ count?: number; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
+  if (!description.trim()) {
+    return { error: 'Description is required' };
+  }
+
+  if (amount <= 0) {
+    return { error: 'Amount must be greater than 0' };
+  }
+
+  const user = await getUser();
+  const supabase = await createClient();
+
+  // Verify the period exists and is in draft/preview status
+  const { data: period, error: periodError } = await supabase
+    .from('payroll_periods')
+    .select('id, status')
+    .eq('id', periodId)
+    .eq('organization_id', orgId)
+    .single();
+
+  if (periodError || !period) {
+    return { error: 'Payroll period not found' };
+  }
+
+  if (period.status !== 'draft' && period.status !== 'preview') {
+    return { error: 'Can only add bonuses to draft or preview periods' };
+  }
+
+  // Get all payslips for this period
+  const { data: payslips, error: payslipsError } = await supabase
+    .from('payslips')
+    .select('id')
+    .eq('payroll_period_id', periodId);
+
+  if (payslipsError || !payslips || payslips.length === 0) {
+    return { error: 'No payslips found in this period' };
+  }
+
+  // Insert bonus for each payslip
+  const bonusRecords = payslips.map((p) => ({
+    payslip_id: p.id,
+    description: description.trim(),
+    amount: round(amount),
+    created_by: user?.id,
+  }));
+
+  const { error: insertError } = await supabase
+    .from('payslip_bonuses')
+    .insert(bonusRecords);
+
+  if (insertError) {
+    console.error('Error inserting bonuses:', insertError);
+    return { error: `Failed to add bonuses: ${insertError.message}` };
+  }
+
+  // Recalculate each payslip
+  for (const p of payslips) {
+    await recalculatePayslipWithBonuses(supabase, p.id, orgId);
+  }
+
+  // Recalculate period totals
+  await recalculatePeriodTotals(orgId, periodId);
+
+  return { count: payslips.length };
+}
+
+// Update an existing bonus
+export async function updateBonus(
+  orgId: string,
+  bonusId: string,
+  description: string,
+  amount: number
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
+  if (!description.trim()) {
+    return { error: 'Description is required' };
+  }
+
+  if (amount <= 0) {
+    return { error: 'Amount must be greater than 0' };
+  }
+
+  const supabase = await createClient();
+
+  // Get the bonus and verify it belongs to this org
+  const { data: bonus, error: bonusError } = await supabase
+    .from('payslip_bonuses')
+    .select(`
+      id,
+      payslip_id,
+      payslips!inner (
+        payroll_period_id,
+        payroll_periods!inner (
+          id,
+          organization_id,
+          status
+        )
+      )
+    `)
+    .eq('id', bonusId)
+    .single();
+
+  if (bonusError || !bonus) {
+    return { error: 'Bonus not found' };
+  }
+
+  const payslipData = bonus.payslips as unknown as {
+    payroll_period_id: string;
+    payroll_periods: { id: string; organization_id: string; status: string };
+  };
+
+  if (payslipData.payroll_periods.organization_id !== orgId) {
+    return { error: 'Bonus does not belong to this organization' };
+  }
+
+  if (payslipData.payroll_periods.status !== 'draft' && payslipData.payroll_periods.status !== 'preview') {
+    return { error: 'Can only edit bonuses in draft or preview periods' };
+  }
+
+  // Update the bonus
+  const { error: updateError } = await supabase
+    .from('payslip_bonuses')
+    .update({
+      description: description.trim(),
+      amount: round(amount),
+    })
+    .eq('id', bonusId);
+
+  if (updateError) {
+    console.error('Error updating bonus:', updateError);
+    return { error: `Failed to update bonus: ${updateError.message}` };
+  }
+
+  // Recalculate the payslip
+  await recalculatePayslipWithBonuses(supabase, bonus.payslip_id, orgId);
+
+  // Recalculate period totals
+  await recalculatePeriodTotals(orgId, payslipData.payroll_periods.id);
+
+  return { success: true };
+}
+
+// Delete a bonus
+export async function deleteBonus(
+  orgId: string,
+  bonusId: string
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
+  const supabase = await createClient();
+
+  // Get the bonus and verify it belongs to this org
+  const { data: bonus, error: bonusError } = await supabase
+    .from('payslip_bonuses')
+    .select(`
+      id,
+      payslip_id,
+      payslips!inner (
+        payroll_period_id,
+        payroll_periods!inner (
+          id,
+          organization_id,
+          status
+        )
+      )
+    `)
+    .eq('id', bonusId)
+    .single();
+
+  if (bonusError || !bonus) {
+    return { error: 'Bonus not found' };
+  }
+
+  const payslipData = bonus.payslips as unknown as {
+    payroll_period_id: string;
+    payroll_periods: { id: string; organization_id: string; status: string };
+  };
+
+  if (payslipData.payroll_periods.organization_id !== orgId) {
+    return { error: 'Bonus does not belong to this organization' };
+  }
+
+  if (payslipData.payroll_periods.status !== 'draft' && payslipData.payroll_periods.status !== 'preview') {
+    return { error: 'Can only delete bonuses from draft or preview periods' };
+  }
+
+  const payslipId = bonus.payslip_id;
+  const periodId = payslipData.payroll_periods.id;
+
+  // Delete the bonus
+  const { error: deleteError } = await supabase
+    .from('payslip_bonuses')
+    .delete()
+    .eq('id', bonusId);
+
+  if (deleteError) {
+    console.error('Error deleting bonus:', deleteError);
+    return { error: `Failed to delete bonus: ${deleteError.message}` };
+  }
+
+  // Recalculate the payslip
+  await recalculatePayslipWithBonuses(supabase, payslipId, orgId);
 
   // Recalculate period totals
   await recalculatePeriodTotals(orgId, periodId);

@@ -48,19 +48,24 @@ import {
   RefreshCw,
   RotateCcw,
   AlertTriangle,
+  Gift,
+  Pencil,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
   type PayrollPeriod,
   type PayslipWithEmployee,
+  type PayslipBonus,
   generatePayslips,
   updatePayrollStatus,
   deletePayrollPeriod,
   revertPayrollToDraft,
   deletePayslip,
   regeneratePayslip,
+  deleteBonus,
 } from '@/lib/actions/payroll';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { AddBonusDialog } from './AddBonusDialog';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -111,6 +116,13 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
 
   // Payslip detail dialog
   const [selectedPayslip, setSelectedPayslip] = useState<PayslipWithEmployee | null>(null);
+
+  // Bonus dialog state
+  const [bonusDialogOpen, setBonusDialogOpen] = useState(false);
+  const [bonusTarget, setBonusTarget] = useState<{
+    payslipId?: string;
+    employeeName?: string;
+  } | null>(null);
 
   const handleGeneratePayslips = async () => {
     setLoading(true);
@@ -327,6 +339,45 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
   const adjustedCount = payslips.filter((p) => p.employee_adjusted).length;
   const canModify = period.status === 'draft' || period.status === 'preview';
 
+  const handleOpenBonusDialog = (payslip?: PayslipWithEmployee) => {
+    if (payslip) {
+      const profile = payslip.profiles as { full_name: string };
+      setBonusTarget({
+        payslipId: payslip.id,
+        employeeName: profile?.full_name,
+      });
+    } else {
+      setBonusTarget(null);
+    }
+    setBonusDialogOpen(true);
+  };
+
+  const handleDeleteBonus = (bonus: PayslipBonus) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Bonus',
+      description: `Are you sure you want to delete the "${bonus.description}" bonus? This will recalculate the employee's payslip.`,
+      warning: true,
+      action: async () => {
+        setLoading(true);
+        setLoadingMessage('Deleting bonus...');
+        try {
+          const result = await deleteBonus(orgId, bonus.id);
+          if (result.error) {
+            alert(result.error);
+            return;
+          }
+          router.refresh();
+        } catch (err) {
+          alert(err instanceof Error ? err.message : 'Failed to delete bonus');
+        } finally {
+          setLoading(false);
+          setLoadingMessage('');
+        }
+      },
+    });
+  };
+
   return (
     <LoadingOverlay isLoading={loading} message={loadingMessage}>
       <div className="space-y-6">
@@ -368,10 +419,20 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
                   {payslips.length > 0 ? 'Regenerate' : 'Generate'} Payslips
                 </Button>
                 {payslips.length > 0 && (
-                  <Button onClick={() => setPreviewDialogOpen(true)} className="gap-2">
-                    <Play className="h-4 w-4" />
-                    Start Preview
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleOpenBonusDialog()}
+                      className="gap-2"
+                    >
+                      <Gift className="h-4 w-4" />
+                      Add Bonus
+                    </Button>
+                    <Button onClick={() => setPreviewDialogOpen(true)} className="gap-2">
+                      <Play className="h-4 w-4" />
+                      Start Preview
+                    </Button>
+                  </>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -390,6 +451,14 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
             )}
             {period.status === 'preview' && (
               <>
+                <Button
+                  variant="outline"
+                  onClick={() => handleOpenBonusDialog()}
+                  className="gap-2"
+                >
+                  <Gift className="h-4 w-4" />
+                  Add Bonus
+                </Button>
                 <Button onClick={handleApprove} disabled={loading} className="gap-2">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                   Approve Payroll
@@ -569,6 +638,10 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
                               </DropdownMenuItem>
                               {canModify && (
                                 <>
+                                  <DropdownMenuItem onClick={() => handleOpenBonusDialog(payslip)}>
+                                    <Gift className="h-4 w-4 mr-2" />
+                                    Add Bonus
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleRegeneratePayslip(payslip)}>
                                     <RefreshCw className="h-4 w-4 mr-2" />
                                     Regenerate
@@ -695,7 +768,29 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <span className="text-zinc-500">Base Salary</span>
                       <span className="text-right">£{Number(selectedPayslip.base_salary).toLocaleString()}</span>
-                      {Number(selectedPayslip.bonus) > 0 && (
+                      {/* Individual Bonuses */}
+                      {selectedPayslip.payslip_bonuses && selectedPayslip.payslip_bonuses.length > 0 && (
+                        selectedPayslip.payslip_bonuses.map((bonus) => (
+                          <div key={bonus.id} className="contents">
+                            <span className="text-zinc-500 flex items-center gap-2">
+                              {bonus.description}
+                              {canModify && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => handleDeleteBonus(bonus)}
+                                >
+                                  <Trash2 className="h-3 w-3 text-red-500" />
+                                </Button>
+                              )}
+                            </span>
+                            <span className="text-right">£{Number(bonus.amount).toLocaleString()}</span>
+                          </div>
+                        ))
+                      )}
+                      {/* Legacy bonus field (for backwards compatibility) */}
+                      {Number(selectedPayslip.bonus) > 0 && (!selectedPayslip.payslip_bonuses || selectedPayslip.payslip_bonuses.length === 0) && (
                         <>
                           <span className="text-zinc-500">Bonus</span>
                           <span className="text-right">£{Number(selectedPayslip.bonus).toLocaleString()}</span>
@@ -768,6 +863,24 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Add Bonus Dialog */}
+        <AddBonusDialog
+          open={bonusDialogOpen}
+          onOpenChange={setBonusDialogOpen}
+          orgId={orgId}
+          periodId={period.id}
+          payslipId={bonusTarget?.payslipId}
+          employeeName={bonusTarget?.employeeName}
+          onSuccess={() => {
+            setBonusTarget(null);
+            // Refresh the selected payslip if one is open
+            if (selectedPayslip) {
+              const updated = payslips.find((p) => p.id === selectedPayslip.id);
+              if (updated) setSelectedPayslip(updated);
+            }
+          }}
+        />
       </div>
     </LoadingOverlay>
   );

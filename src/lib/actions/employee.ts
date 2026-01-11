@@ -3,6 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { createClient, getUser } from '@/lib/supabase/server';
 
+export type PayslipBonusItem = {
+  id: string;
+  description: string;
+  amount: number;
+};
+
 export type EmployeePayslip = {
   id: string;
   payroll_period_id: string;
@@ -27,6 +33,7 @@ export type EmployeePayslip = {
   adjustment_note: string | null;
   tax_code: string;
   created_at: string;
+  bonuses: PayslipBonusItem[];
 };
 
 export type EmployeeDetails = {
@@ -114,6 +121,11 @@ export async function getMyPayslips(orgId: string): Promise<EmployeePayslip[]> {
         month,
         status,
         organization_id
+      ),
+      payslip_bonuses (
+        id,
+        description,
+        amount
       )
     `)
     .eq('employee_id', user.id)
@@ -127,6 +139,7 @@ export async function getMyPayslips(orgId: string): Promise<EmployeePayslip[]> {
 
   return (data || []).map((payslip) => {
     const period = payslip.payroll_periods as { year: number; month: number; status: string; organization_id: string };
+    const bonuses = (payslip.payslip_bonuses || []) as { id: string; description: string; amount: number }[];
     return {
       id: payslip.id,
       payroll_period_id: payslip.payroll_period_id,
@@ -151,6 +164,11 @@ export async function getMyPayslips(orgId: string): Promise<EmployeePayslip[]> {
       adjustment_note: payslip.adjustment_note,
       tax_code: payslip.tax_code,
       created_at: payslip.created_at,
+      bonuses: bonuses.map((b) => ({
+        id: b.id,
+        description: b.description,
+        amount: Number(b.amount),
+      })),
     };
   });
 }

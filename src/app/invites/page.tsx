@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Check, X, Loader2 } from 'lucide-react';
+import { Building2, Check, X, Loader2, Mail } from 'lucide-react';
 import { getMyPendingInvites, declineInvite, type PendingInvite } from '@/lib/actions/invites';
+import { Logo } from '@/components/Logo';
+import { SignOutButton } from '@/components/auth/SignOutButton';
 
 export default function InvitesPage() {
   const router = useRouter();
@@ -76,8 +78,12 @@ export default function InvitesPage() {
   if (invites.length === 0) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center p-4">
+        <div className="absolute top-4 right-4">
+          <SignOutButton />
+        </div>
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <Logo size="lg" className="block mx-auto mb-4" />
             <CardTitle>No Pending Invites</CardTitle>
             <CardDescription>
               You don't have any pending organization invitations.
@@ -94,14 +100,28 @@ export default function InvitesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-4">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Pending Invitations</h1>
-
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <SignOutButton />
+      </div>
+      <div className="w-full max-w-md">
         <div className="space-y-4">
+          <Card>
+            <CardHeader className="text-center">
+              <Logo size="lg" className="block mx-auto mb-2" />
+              <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                <Mail className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-2xl">You have been invited!</CardTitle>
+              <CardDescription>
+                Accept an invitation to join an organization and start managing your payroll.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
           {invites.map((invite) => (
             <Card key={invite.id}>
-              <CardHeader>
+              <CardHeader className="pb-2">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                     <Building2 className="h-5 w-5" />
@@ -144,12 +164,12 @@ export default function InvitesPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
 
-        <div className="mt-6 text-center">
-          <Button variant="ghost" onClick={() => router.push('/dashboard')}>
-            Go to Dashboard
-          </Button>
+          <div className="text-center pt-4">
+            <Button variant="ghost" onClick={() => router.push('/dashboard')}>
+              Go to Dashboard
+            </Button>
+          </div>
         </div>
       </div>
     </div>

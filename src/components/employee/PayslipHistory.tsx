@@ -139,7 +139,17 @@ export function PayslipHistory({ payslips }: PayslipHistoryProps) {
                     <span className="text-zinc-500">Basic Salary</span>
                     <span>{formatCurrency(selectedPayslip.base_salary)}</span>
                   </div>
-                  {selectedPayslip.bonus > 0 && (
+                  {/* Individual bonuses */}
+                  {selectedPayslip.bonuses && selectedPayslip.bonuses.length > 0 && (
+                    selectedPayslip.bonuses.map((bonus) => (
+                      <div key={bonus.id} className="flex justify-between">
+                        <span className="text-zinc-500">{bonus.description}</span>
+                        <span>{formatCurrency(bonus.amount)}</span>
+                      </div>
+                    ))
+                  )}
+                  {/* Legacy bonus field */}
+                  {selectedPayslip.bonus > 0 && (!selectedPayslip.bonuses || selectedPayslip.bonuses.length === 0) && (
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Bonus</span>
                       <span>{formatCurrency(selectedPayslip.bonus)}</span>

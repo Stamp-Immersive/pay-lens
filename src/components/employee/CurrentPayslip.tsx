@@ -34,9 +34,15 @@ export function CurrentPayslip({ payslip, employeeName }: CurrentPayslipProps) {
   const periodLabel = `${MONTHS[payslip.period_month - 1]} ${payslip.period_year}`;
   const statusConfig = STATUS_CONFIG[payslip.status] || STATUS_CONFIG.draft;
 
+  // Build earnings array with individual bonuses
   const earnings = [
     { name: 'Basic Salary', amount: payslip.base_salary },
-    ...(payslip.bonus > 0 ? [{ name: 'Bonus', amount: payslip.bonus }] : []),
+    // Include individual bonuses with their descriptions
+    ...(payslip.bonuses || []).map((b) => ({ name: b.description, amount: b.amount })),
+    // Fall back to legacy bonus field if no individual bonuses exist
+    ...(payslip.bonus > 0 && (!payslip.bonuses || payslip.bonuses.length === 0)
+      ? [{ name: 'Bonus', amount: payslip.bonus }]
+      : []),
     ...(payslip.other_additions > 0 ? [{ name: 'Other Additions', amount: payslip.other_additions }] : []),
   ];
 

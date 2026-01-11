@@ -9,7 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { acceptInvite, declineInvite, testAction, type PendingInvite } from '@/lib/actions/invites';
+import { acceptInvite, declineInvite, type PendingInvite } from '@/lib/actions/invites';
 
 type NotificationBellProps = {
   pendingInvites: PendingInvite[];
@@ -29,32 +29,20 @@ export function NotificationBell({ pendingInvites }: NotificationBellProps) {
   const totalCount = localInvites.length;
 
   async function handleAccept(inviteId: string) {
-    alert('handleAccept called with: ' + inviteId);
     setLoading(inviteId);
     try {
-      // Test if server actions work at all
-      alert('About to call testAction');
-      const testResult = await testAction();
-      alert('testAction returned: ' + JSON.stringify(testResult));
-
-      console.log('Calling acceptInvite...');
       const result = await acceptInvite(inviteId);
-      console.log('Accept result:', result);
-
       if (result.success) {
         setLocalInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
-        // Use hard navigation to bypass Next.js Router Cache
         if (result.orgSlug) {
           window.location.href = `/dashboard/${result.orgSlug}/employee`;
         } else {
           window.location.reload();
         }
-      } else {
-        console.error('Failed to accept invite - success was false');
-        setLoading(null);
       }
     } catch (error) {
-      console.error('Failed to accept invite - caught error:', error);
+      console.error('Failed to accept invite:', error);
+    } finally {
       setLoading(null);
     }
   }

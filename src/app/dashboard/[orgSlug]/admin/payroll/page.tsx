@@ -11,13 +11,26 @@ export default async function PayrollPage({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
-  const organization = await getOrganizationBySlug(orgSlug);
+
+  let organization;
+  try {
+    organization = await getOrganizationBySlug(orgSlug);
+  } catch (error) {
+    console.error('Error fetching organization:', error);
+    throw new Error(`Failed to fetch organization: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 
   if (!organization) {
     notFound();
   }
 
-  const periods = await getPayrollPeriods(organization.id);
+  let periods;
+  try {
+    periods = await getPayrollPeriods(organization.id);
+  } catch (error) {
+    console.error('Error fetching payroll periods:', error);
+    throw new Error(`Failed to fetch payroll periods: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 
   return (
     <div>

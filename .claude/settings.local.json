@@ -24,7 +24,8 @@
       "Bash(node capture-logo.js:*)",
       "Bash(cat:*)",
       "Bash(npm ls:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(ls -la \"C:\\\\Users\\\\stamp\\\\Documents\\\\Repositories\\\\pay-lens\\\\src\\\\components\\\\employee\"\" 2>/dev/null || ls -la \"C:/Users/stamp/Documents/Repositories/pay-lens/src/components/employee/ \")"
     ]
   }
 }

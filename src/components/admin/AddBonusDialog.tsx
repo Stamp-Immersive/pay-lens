@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,6 +40,13 @@ export function AddBonusDialog({
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [target, setTarget] = useState<'single' | 'all'>(payslipId ? 'single' : 'all');
+
+  // Reset target when payslipId changes (e.g., opening for different employee)
+  useEffect(() => {
+    setTarget(payslipId ? 'single' : 'all');
+  }, [payslipId]);
+
+  const isForAllEmployees = !payslipId || target === 'all';
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -93,9 +100,13 @@ export function AddBonusDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Bonus</DialogTitle>
+          <DialogTitle>
+            {payslipId ? 'Add Bonus' : 'Add Bonus to All Employees'}
+          </DialogTitle>
           <DialogDescription>
-            Add a bonus payment to {payslipId ? 'an employee\'s' : 'employees\''} payslip.
+            {payslipId
+              ? `Add a bonus payment to ${employeeName || 'this employee'}'s payslip.`
+              : 'This bonus will be added to every employee\'s payslip in this period.'}
           </DialogDescription>
         </DialogHeader>
 

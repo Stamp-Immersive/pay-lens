@@ -353,6 +353,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
   };
 
   const handleDeleteBonus = (bonus: PayslipBonus) => {
+    // Close the payslip detail dialog first
+    setSelectedPayslip(null);
+
     setConfirmDialog({
       open: true,
       title: 'Delete Bonus',

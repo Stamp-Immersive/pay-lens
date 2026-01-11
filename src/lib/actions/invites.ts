@@ -112,7 +112,7 @@ export async function acceptInvite(inviteId: string) {
   }
 
   revalidatePath('/invites');
-  revalidatePath('/dashboard');
+  revalidatePath('/', 'layout');
 
   // Return the org slug for redirect
   const adminClient = createAdminClient();
@@ -157,7 +157,7 @@ export async function declineInvite(inviteId: string) {
   }
 
   revalidatePath('/invites');
-  revalidatePath('/dashboard');
+  revalidatePath('/', 'layout');
 
   return { success: true };
 }

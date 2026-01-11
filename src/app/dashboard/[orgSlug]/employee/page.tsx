@@ -8,6 +8,7 @@ import { CurrentPayslip } from '@/components/employee/CurrentPayslip';
 import { PensionAdjustment } from '@/components/employee/PensionAdjustment';
 import { PayslipHistory } from '@/components/employee/PayslipHistory';
 import { OrganizationSwitcher } from '@/components/OrganizationSwitcher';
+import { Logo } from '@/components/Logo';
 import {
   getMyDetails,
   getMyPayslips,
@@ -66,9 +67,7 @@ export default async function EmployeeDashboardPage({
         <header className="mb-8 flex justify-between items-start">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                PayAdjust
-              </h1>
+              <Logo />
               <OrganizationSwitcher />
             </div>
             <p className="text-zinc-600 dark:text-zinc-400 mt-1">

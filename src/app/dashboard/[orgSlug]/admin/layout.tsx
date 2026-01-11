@@ -6,6 +6,7 @@ import { SignOutButton } from '@/components/auth/SignOutButton';
 import { Badge } from '@/components/ui/badge';
 import { AdminNav } from '@/components/admin/AdminNav';
 import { OrganizationSwitcher } from '@/components/OrganizationSwitcher';
+import { Logo } from '@/components/Logo';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,9 +45,7 @@ export default async function AdminLayout({
         <header className="mb-6 flex justify-between items-start">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                PayAdjust
-              </h1>
+              <Logo />
               <OrganizationSwitcher />
             </div>
             <p className="text-zinc-600 dark:text-zinc-400 mt-1">

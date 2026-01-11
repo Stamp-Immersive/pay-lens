@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Logo } from '@/components/Logo';
 
 function LoginContent() {
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +41,7 @@ function LoginContent() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">PayAdjust</CardTitle>
+          <Logo size="lg" className="block mx-auto mb-2" />
           <CardDescription>
             Sign in to view your payslips and manage contributions
           </CardDescription>

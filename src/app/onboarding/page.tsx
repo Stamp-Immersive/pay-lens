@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Building2, Loader2, Check, X, Mail } from 'lucide-react';
 import { createOrganization } from '@/lib/actions/organizations';
 import { getMyPendingInvites, acceptInvite, declineInvite, type PendingInvite } from '@/lib/actions/invites';
+import { Logo } from '@/components/Logo';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -174,7 +175,7 @@ export default function OnboardingPage() {
               <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                 <Building2 className="h-6 w-6" />
               </div>
-              <CardTitle className="text-2xl">Welcome to PayAdjust</CardTitle>
+              <Logo size="lg" className="block mx-auto mb-2" />
               <CardDescription>
                 Get started by creating your organization or wait for an invitation.
               </CardDescription>

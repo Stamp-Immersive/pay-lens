@@ -35,12 +35,29 @@ export function AddBonusDialog({
   onSuccess,
 }: AddBonusDialogProps) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [target, setTarget] = useState<'single' | 'all'>(payslipId ? 'single' : 'all');
+  const [shouldClose, setShouldClose] = useState(false);
+
+  // Close dialog after refresh completes
+  useEffect(() => {
+    if (shouldClose && !isPending) {
+      setDescription('');
+      setAmount('');
+      setError(null);
+      setShouldClose(false);
+      setLoading(false);
+      onOpenChange(false);
+      onSuccess?.();
+    }
+  }, [shouldClose, isPending, onOpenChange, onSuccess]);
+
+  // Combined loading state
+  const isLoading = loading || isPending;
 
   // Reset target when payslipId changes (e.g., opening for different employee)
   useEffect(() => {
@@ -70,27 +87,25 @@ export function AddBonusDialog({
 
       if (result.error) {
         setError(result.error);
+        setLoading(false);
         return;
       }
 
-      // Reset form
-      setDescription('');
-      setAmount('');
-      setError(null);
-
+      // Start refresh and mark for closing when complete
+      setShouldClose(true);
       startTransition(() => {
         router.refresh();
       });
-      onOpenChange(false);
-      onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add bonus');
-    } finally {
       setLoading(false);
     }
   };
 
   const handleClose = (newOpen: boolean) => {
+    // Prevent closing while loading
+    if (!newOpen && isLoading) return;
+
     if (!newOpen) {
       setDescription('');
       setAmount('');
@@ -173,11 +188,11 @@ export function AddBonusDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleClose(false)}>
+          <Button variant="outline" onClick={() => handleClose(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || !description.trim() || !amount}>
-            {loading ? 'Adding...' : 'Add Bonus'}
+          <Button onClick={handleSubmit} disabled={isLoading || !description.trim() || !amount}>
+            {isLoading ? 'Adding...' : 'Add Bonus'}
           </Button>
         </DialogFooter>
       </DialogContent>

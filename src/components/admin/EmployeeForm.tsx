@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,7 @@ type EmployeeFormProps = {
 
 export function EmployeeForm({ open, onOpenChange, employee, mode, orgId }: EmployeeFormProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,7 +102,9 @@ export function EmployeeForm({ open, onOpenChange, employee, mode, orgId }: Empl
         start_date: formData.start_date || undefined,
       });
 
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
       onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save employee');

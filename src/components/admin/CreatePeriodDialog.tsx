@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +34,7 @@ type CreatePeriodDialogProps = {
 
 export function CreatePeriodDialog({ orgId }: CreatePeriodDialogProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +55,9 @@ export function CreatePeriodDialog({ orgId }: CreatePeriodDialogProps) {
         setError(result.error);
         return;
       }
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
       setOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create period');

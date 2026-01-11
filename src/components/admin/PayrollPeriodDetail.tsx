@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,8 +91,12 @@ type PayrollPeriodDetailProps = {
 export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDetailProps) {
   const router = useRouter();
   const { organization } = useOrganization();
+  const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+
+  // Combined loading state - true while action is running OR while refresh is pending
+  const isLoading = loading || isPending;
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [dates, setDates] = useState({
     preview_start_date: '',
@@ -134,7 +138,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
         alert(result.error);
         return;
       }
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to generate payslips');
     } finally {
@@ -153,7 +159,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
         return;
       }
       setPreviewDialogOpen(false);
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to start preview');
     } finally {
@@ -176,7 +184,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
             alert(result.error);
             return;
           }
-          router.refresh();
+          startTransition(() => {
+            router.refresh();
+          });
         } catch (err) {
           alert(err instanceof Error ? err.message : 'Failed to approve payroll');
         } finally {
@@ -201,7 +211,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
             alert(result.error);
             return;
           }
-          router.refresh();
+          startTransition(() => {
+            router.refresh();
+          });
         } catch (err) {
           alert(err instanceof Error ? err.message : 'Failed to process payroll');
         } finally {
@@ -227,7 +239,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
             alert(result.error);
             return;
           }
-          router.refresh();
+          startTransition(() => {
+            router.refresh();
+          });
         } catch (err) {
           alert(err instanceof Error ? err.message : 'Failed to revert payroll');
         } finally {
@@ -296,7 +310,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
             alert(result.error);
             return;
           }
-          router.refresh();
+          startTransition(() => {
+            router.refresh();
+          });
         } catch (err) {
           alert(err instanceof Error ? err.message : 'Failed to delete payslip');
         } finally {
@@ -326,7 +342,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
             alert(result.error);
             return;
           }
-          router.refresh();
+          startTransition(() => {
+            router.refresh();
+          });
         } catch (err) {
           alert(err instanceof Error ? err.message : 'Failed to regenerate payslip');
         } finally {
@@ -371,7 +389,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
             alert(result.error);
             return;
           }
-          router.refresh();
+          startTransition(() => {
+            router.refresh();
+          });
         } catch (err) {
           alert(err instanceof Error ? err.message : 'Failed to delete bonus');
         } finally {
@@ -383,7 +403,7 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
   };
 
   return (
-    <LoadingOverlay isLoading={loading} message={loadingMessage}>
+    <LoadingOverlay isLoading={isLoading} message={loadingMessage}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

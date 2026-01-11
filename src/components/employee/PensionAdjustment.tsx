@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,7 @@ type PensionAdjustmentProps = {
 
 export function PensionAdjustment({ payslip, annualSalary, canAdjust, orgId }: PensionAdjustmentProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const currentPensionPercent = payslip?.pension_percent || 5;
   const [pensionPercent, setPensionPercent] = useState(currentPensionPercent);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -77,7 +78,9 @@ export function PensionAdjustment({ payslip, annualSalary, canAdjust, orgId }: P
     try {
       await adjustPension(orgId, payslip.id, pensionPercent, reason || undefined);
       setConfirmOpen(false);
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save adjustment');
     } finally {

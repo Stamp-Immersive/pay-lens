@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,6 +64,7 @@ type EmployeesListProps = {
 
 export function EmployeesList({ employees, orgId, pendingInvites = [] }: EmployeesListProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeWithDetails | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('edit');
@@ -89,13 +90,17 @@ export function EmployeesList({ employees, orgId, pendingInvites = [] }: Employe
   const handleDeactivate = async (profileId: string) => {
     if (confirm('Are you sure you want to deactivate this employee?')) {
       await deactivateEmployee(orgId, profileId);
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     }
   };
 
   const handleReactivate = async (profileId: string) => {
     await reactivateEmployee(orgId, profileId);
-    router.refresh();
+    startTransition(() => {
+      router.refresh();
+    });
   };
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -108,7 +113,9 @@ export function EmployeesList({ employees, orgId, pendingInvites = [] }: Employe
       setInviteOpen(false);
       setInviteEmail('');
       setInviteRole('employee');
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (err) {
       setInviteError(err instanceof Error ? err.message : 'Failed to send invite');
     } finally {
@@ -120,7 +127,9 @@ export function EmployeesList({ employees, orgId, pendingInvites = [] }: Employe
     if (confirm(`Cancel invitation to ${invite.email}?`)) {
       try {
         await cancelInvite(invite.id, invite.type, orgId);
-        router.refresh();
+        startTransition(() => {
+          router.refresh();
+        });
       } catch (err) {
         console.error('Failed to cancel invite:', err);
       }

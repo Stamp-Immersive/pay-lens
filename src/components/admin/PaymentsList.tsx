@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +65,7 @@ type PaymentsListProps = {
 
 export function PaymentsList({ periods, stats, orgId }: PaymentsListProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [loading, setLoading] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<PaymentPeriod | null>(null);
@@ -115,7 +116,9 @@ export function PaymentsList({ periods, stats, orgId }: PaymentsListProps) {
     setLoading(periodId);
     try {
       await markAsProcessing(orgId, periodId);
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update status');
     } finally {
@@ -130,7 +133,9 @@ export function PaymentsList({ periods, stats, orgId }: PaymentsListProps) {
     setLoading(periodId);
     try {
       await markAsProcessed(orgId, periodId);
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update status');
     } finally {

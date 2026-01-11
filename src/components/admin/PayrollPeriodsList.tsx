@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +54,7 @@ type PayrollPeriodsListProps = {
 
 export function PayrollPeriodsList({ periods, orgId }: PayrollPeriodsListProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const { organization } = useOrganization();
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
@@ -85,7 +86,9 @@ export function PayrollPeriodsList({ periods, orgId }: PayrollPeriodsListProps) 
         alert(result.error);
         return;
       }
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to generate payslips');
     } finally {
@@ -112,7 +115,9 @@ export function PayrollPeriodsList({ periods, orgId }: PayrollPeriodsListProps) 
             alert(result.error);
             return;
           }
-          router.refresh();
+          startTransition(() => {
+            router.refresh();
+          });
         } catch (err) {
           alert(err instanceof Error ? err.message : 'Failed to delete period');
         } finally {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +35,7 @@ export function AddBonusDialog({
   onSuccess,
 }: AddBonusDialogProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [description, setDescription] = useState('');
@@ -77,7 +78,9 @@ export function AddBonusDialog({
       setAmount('');
       setError(null);
 
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {

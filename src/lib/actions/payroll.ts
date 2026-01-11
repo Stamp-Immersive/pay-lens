@@ -263,12 +263,12 @@ export async function getPayrollPeriod(orgId: string, periodId: string) {
 }
 
 // Create a new payroll period
-export async function createPayrollPeriod(orgId: string, year: number, month: number) {
+export async function createPayrollPeriod(orgId: string, year: number, month: number): Promise<{ data?: PayrollPeriod; error?: string }> {
   try {
     await requireOrgAdmin(orgId);
   } catch (error) {
     console.error('Admin check failed:', error);
-    throw new Error(`Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 
   const user = await getUser();
@@ -285,11 +285,11 @@ export async function createPayrollPeriod(orgId: string, year: number, month: nu
 
   if (checkError) {
     console.error('Error checking existing period:', checkError);
-    throw new Error(`Database error: ${checkError.message}`);
+    return { error: `Database error: ${checkError.message}` };
   }
 
   if (existing) {
-    throw new Error(`Payroll period for ${month}/${year} already exists`);
+    return { error: `Payroll period for ${month}/${year} already exists` };
   }
 
   const { data, error } = await supabase
@@ -306,11 +306,11 @@ export async function createPayrollPeriod(orgId: string, year: number, month: nu
 
   if (error) {
     console.error('Error creating payroll period:', error);
-    throw new Error(`Failed to create payroll period: ${error.message}`);
+    return { error: `Failed to create payroll period: ${error.message}` };
   }
 
   revalidatePath('/dashboard/[orgSlug]/admin/payroll', 'page');
-  return data;
+  return { data };
 }
 
 // Generate payslips for all active employees

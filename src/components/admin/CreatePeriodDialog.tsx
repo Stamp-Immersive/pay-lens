@@ -49,7 +49,11 @@ export function CreatePeriodDialog({ orgId }: CreatePeriodDialogProps) {
     setError(null);
 
     try {
-      await createPayrollPeriod(orgId, parseInt(year), parseInt(month));
+      const result = await createPayrollPeriod(orgId, parseInt(year), parseInt(month));
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
       router.refresh();
       setOpen(false);
     } catch (err) {

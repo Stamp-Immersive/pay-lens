@@ -35,27 +35,39 @@ function TabsList({
   )
 }
 
-function TabsTrigger({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
-  const triggerRef = React.useRef<HTMLButtonElement>(null);
-  const { spotlightStyle, handlers } = useSpotlight(triggerRef, {
+const TabsTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, children, ...props }, forwardedRef) => {
+  const internalRef = React.useRef<HTMLButtonElement>(null);
+  const ref = (forwardedRef as React.RefObject<HTMLButtonElement>) || internalRef;
+
+  const { spotlightStyle, handlers } = useSpotlight(ref, {
     size: 100,
     opacity: 0.25,
   });
 
   return (
     <TabsPrimitive.Trigger
-      ref={triggerRef}
+      ref={ref}
       data-slot="tabs-trigger"
       className={cn(
         "data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         "relative overflow-hidden",
         className
       )}
-      {...handlers}
+      onMouseMove={(e) => {
+        handlers.onMouseMove(e);
+        props.onMouseMove?.(e);
+      }}
+      onMouseEnter={(e) => {
+        handlers.onMouseEnter();
+        props.onMouseEnter?.(e);
+      }}
+      onMouseLeave={(e) => {
+        handlers.onMouseLeave();
+        props.onMouseLeave?.(e);
+      }}
       {...props}
     >
       {spotlightStyle && <div style={spotlightStyle} />}
@@ -64,7 +76,8 @@ function TabsTrigger({
       </span>
     </TabsPrimitive.Trigger>
   )
-}
+})
+TabsTrigger.displayName = "TabsTrigger"
 
 function TabsContent({
   className,

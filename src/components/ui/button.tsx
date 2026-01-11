@@ -39,56 +39,67 @@ const buttonVariants = cva(
   }
 )
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  asChild = false,
-  children,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
-  }) {
-  const buttonRef = React.useRef<HTMLButtonElement>(null);
-  const { spotlightStyle, handlers } = useSpotlight(buttonRef, {
-    size: 120,
-    opacity: 0.3,
-  });
+interface ButtonProps extends React.ComponentProps<"button">, VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
 
-  if (asChild) {
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = "default", size = "default", asChild = false, children, ...props }, forwardedRef) => {
+    const internalRef = React.useRef<HTMLButtonElement>(null);
+    const ref = (forwardedRef as React.RefObject<HTMLButtonElement>) || internalRef;
+
+    const { spotlightStyle, handlers } = useSpotlight(ref, {
+      size: 120,
+      opacity: 0.3,
+    });
+
+    if (asChild) {
+      return (
+        <Slot
+          data-slot="button"
+          data-variant={variant}
+          data-size={size}
+          className={cn(buttonVariants({ variant, size, className }))}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Slot
+      <button
+        ref={ref}
         data-slot="button"
         data-variant={variant}
         data-size={size}
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          "relative overflow-hidden"
+        )}
+        onMouseMove={(e) => {
+          handlers.onMouseMove(e);
+          props.onMouseMove?.(e);
+        }}
+        onMouseEnter={(e) => {
+          handlers.onMouseEnter();
+          props.onMouseEnter?.(e);
+        }}
+        onMouseLeave={(e) => {
+          handlers.onMouseLeave();
+          props.onMouseLeave?.(e);
+        }}
         {...props}
       >
-        {children}
-      </Slot>
-    );
+        {spotlightStyle && <div style={spotlightStyle} />}
+        <span className="relative z-10 inline-flex items-center justify-center gap-2">
+          {children}
+        </span>
+      </button>
+    )
   }
+)
 
-  return (
-    <button
-      ref={buttonRef}
-      data-slot="button"
-      data-variant={variant}
-      data-size={size}
-      className={cn(
-        buttonVariants({ variant, size, className }),
-        "relative overflow-hidden"
-      )}
-      {...handlers}
-      {...props}
-    >
-      {spotlightStyle && <div style={spotlightStyle} />}
-      <span className="relative z-10 inline-flex items-center justify-center gap-2">
-        {children}
-      </span>
-    </button>
-  )
-}
+Button.displayName = "Button"
 
 export { Button, buttonVariants }

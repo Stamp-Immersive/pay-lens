@@ -27,16 +27,38 @@ export async function getMyPendingInvites(): Promise<PendingInvite[]> {
 
   const supabase = await createClient();
 
-  // First, get orgs where user is already an accepted member
-  const { data: acceptedOrgs } = await supabase
+  // Get all membership records for this user
+  const { data: allMemberships, error: membershipError } = await supabase
     .from('organization_members')
-    .select('organization_id')
-    .eq('profile_id', user.id)
-    .not('accepted_at', 'is', null);
+    .select('id, organization_id, accepted_at')
+    .eq('profile_id', user.id);
 
-  const acceptedOrgIds = new Set((acceptedOrgs || []).map(o => o.organization_id));
+  if (membershipError) {
+    console.error('Error fetching memberships:', membershipError);
+    return [];
+  }
 
-  // Get invites from organization_members where accepted_at is null
+  // Find orgs where user is accepted (has accepted_at)
+  const acceptedOrgIds = new Set(
+    (allMemberships || [])
+      .filter(m => m.accepted_at !== null)
+      .map(m => m.organization_id)
+  );
+
+  // Find duplicate pending invites (pending invite for org user is already in)
+  const duplicateInviteIds = (allMemberships || [])
+    .filter(m => m.accepted_at === null && acceptedOrgIds.has(m.organization_id))
+    .map(m => m.id);
+
+  // Delete duplicate pending invites
+  if (duplicateInviteIds.length > 0) {
+    await supabase
+      .from('organization_members')
+      .delete()
+      .in('id', duplicateInviteIds);
+  }
+
+  // Get remaining pending invites with org details
   const { data, error } = await supabase
     .from('organization_members')
     .select(`
@@ -59,8 +81,7 @@ export async function getMyPendingInvites(): Promise<PendingInvite[]> {
     return [];
   }
 
-  // Filter out orgs where user is already an accepted member
-  const filteredData = (data || []).filter(inv => !acceptedOrgIds.has(inv.organization_id));
+  const filteredData = data || [];
 
   // Get inviter info separately (can't join profiles twice easily)
   const invites = await Promise.all(

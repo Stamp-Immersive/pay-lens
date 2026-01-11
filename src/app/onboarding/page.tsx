@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Loader2, Check, X, Mail } from 'lucide-react';
 import { createOrganization } from '@/lib/actions/organizations';
-import { getMyPendingInvites, acceptInvite, declineInvite, type PendingInvite } from '@/lib/actions/invites';
+import { getMyPendingInvites, declineInvite, type PendingInvite } from '@/lib/actions/invites';
 import { Logo } from '@/components/Logo';
+import { SignOutButton } from '@/components/auth/SignOutButton';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -41,11 +42,16 @@ export default function OnboardingPage() {
   async function handleAccept(inviteId: string) {
     setProcessing(inviteId);
     try {
-      const result = await acceptInvite(inviteId);
-      if (result.orgSlug) {
-        router.push(`/dashboard/${result.orgSlug}/employee`);
+      const response = await fetch('/api/invites/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      });
+      const result = await response.json();
+      if (result.success && result.orgSlug) {
+        window.location.href = `/dashboard/${result.orgSlug}/employee`;
       } else {
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       }
     } catch (err) {
       console.error('Failed to accept invite:', err);
@@ -100,6 +106,9 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <SignOutButton />
+      </div>
       <div className="w-full max-w-md">
         {step === 'invites' && (
           <div className="space-y-4">

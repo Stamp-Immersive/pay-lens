@@ -198,7 +198,13 @@ function round(num: number): number {
 
 // Get all payroll periods for an organization
 export async function getPayrollPeriods(orgId: string): Promise<PayrollPeriod[]> {
-  await requireOrgAdmin(orgId);
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    console.error('Admin check failed in getPayrollPeriods:', error);
+    throw new Error(`Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -210,7 +216,7 @@ export async function getPayrollPeriods(orgId: string): Promise<PayrollPeriod[]>
 
   if (error) {
     console.error('Error fetching payroll periods:', error);
-    throw new Error('Failed to fetch payroll periods');
+    throw new Error(`Failed to fetch payroll periods: ${error.message}`);
   }
 
   return data || [];
@@ -258,18 +264,29 @@ export async function getPayrollPeriod(orgId: string, periodId: string) {
 
 // Create a new payroll period
 export async function createPayrollPeriod(orgId: string, year: number, month: number) {
-  await requireOrgAdmin(orgId);
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    console.error('Admin check failed:', error);
+    throw new Error(`Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+
   const user = await getUser();
   const supabase = await createClient();
 
   // Check if period already exists
-  const { data: existing } = await supabase
+  const { data: existing, error: checkError } = await supabase
     .from('payroll_periods')
     .select('id')
     .eq('organization_id', orgId)
     .eq('year', year)
     .eq('month', month)
-    .single();
+    .maybeSingle();
+
+  if (checkError) {
+    console.error('Error checking existing period:', checkError);
+    throw new Error(`Database error: ${checkError.message}`);
+  }
 
   if (existing) {
     throw new Error(`Payroll period for ${month}/${year} already exists`);
@@ -289,7 +306,7 @@ export async function createPayrollPeriod(orgId: string, year: number, month: nu
 
   if (error) {
     console.error('Error creating payroll period:', error);
-    throw new Error('Failed to create payroll period');
+    throw new Error(`Failed to create payroll period: ${error.message}`);
   }
 
   revalidatePath('/dashboard/[orgSlug]/admin/payroll', 'page');

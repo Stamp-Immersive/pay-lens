@@ -499,8 +499,12 @@ export async function updatePayrollStatus(
   return { success: true };
 }
 
-// Delete a payroll period (only draft)
-export async function deletePayrollPeriod(orgId: string, periodId: string): Promise<{ success?: boolean; error?: string }> {
+// Delete a payroll period (draft or preview)
+export async function deletePayrollPeriod(
+  orgId: string,
+  periodId: string,
+  force: boolean = false
+): Promise<{ success?: boolean; error?: string }> {
   try {
     await requireOrgAdmin(orgId);
   } catch (error) {
@@ -517,8 +521,13 @@ export async function deletePayrollPeriod(orgId: string, periodId: string): Prom
     .eq('organization_id', orgId)
     .single();
 
-  if (period?.status !== 'draft') {
-    return { error: 'Can only delete draft payroll periods' };
+  // Allow deletion of draft periods, or preview periods with force flag
+  if (period?.status !== 'draft' && period?.status !== 'preview') {
+    return { error: 'Can only delete draft or preview payroll periods' };
+  }
+
+  if (period?.status === 'preview' && !force) {
+    return { error: 'Preview period deletion requires confirmation' };
   }
 
   const { error } = await supabase
@@ -578,4 +587,207 @@ export async function recalculatePeriodTotals(orgId: string, periodId: string) {
 
   revalidatePath('/dashboard/[orgSlug]/admin/payroll', 'page');
   revalidatePath(`/dashboard/[orgSlug]/admin/payroll/${periodId}`, 'page');
+}
+
+// Revert a payroll period from preview back to draft
+export async function revertPayrollToDraft(
+  orgId: string,
+  periodId: string
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    console.error('Admin check failed in revertPayrollToDraft:', error);
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
+  const supabase = await createClient();
+
+  // Verify the period is in preview status
+  const { data: period } = await supabase
+    .from('payroll_periods')
+    .select('status')
+    .eq('id', periodId)
+    .eq('organization_id', orgId)
+    .single();
+
+  if (!period) {
+    return { error: 'Payroll period not found' };
+  }
+
+  if (period.status !== 'preview') {
+    return { error: 'Can only revert preview periods to draft' };
+  }
+
+  // Update period status to draft
+  const { error: periodError } = await supabase
+    .from('payroll_periods')
+    .update({
+      status: 'draft',
+      preview_start_date: null,
+      adjustment_deadline: null,
+    })
+    .eq('id', periodId)
+    .eq('organization_id', orgId);
+
+  if (periodError) {
+    console.error('Error reverting payroll period:', periodError);
+    return { error: `Failed to revert payroll period: ${periodError.message}` };
+  }
+
+  // Revert all payslips to draft status
+  const { error: payslipsError } = await supabase
+    .from('payslips')
+    .update({
+      status: 'draft',
+      employee_adjusted: false,
+    })
+    .eq('payroll_period_id', periodId);
+
+  if (payslipsError) {
+    console.error('Error reverting payslips:', payslipsError);
+    return { error: `Failed to revert payslips: ${payslipsError.message}` };
+  }
+
+  revalidatePath('/dashboard/[orgSlug]/admin/payroll', 'page');
+  revalidatePath(`/dashboard/[orgSlug]/admin/payroll/${periodId}`, 'page');
+  return { success: true };
+}
+
+// Delete a single payslip
+export async function deletePayslip(
+  orgId: string,
+  periodId: string,
+  payslipId: string
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    console.error('Admin check failed in deletePayslip:', error);
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
+  const supabase = await createClient();
+
+  // Verify the period is in draft or preview status
+  const { data: period } = await supabase
+    .from('payroll_periods')
+    .select('status')
+    .eq('id', periodId)
+    .eq('organization_id', orgId)
+    .single();
+
+  if (!period) {
+    return { error: 'Payroll period not found' };
+  }
+
+  if (period.status !== 'draft' && period.status !== 'preview') {
+    return { error: 'Can only delete payslips from draft or preview periods' };
+  }
+
+  // Delete the payslip
+  const { error } = await supabase
+    .from('payslips')
+    .delete()
+    .eq('id', payslipId)
+    .eq('payroll_period_id', periodId);
+
+  if (error) {
+    console.error('Error deleting payslip:', error);
+    return { error: `Failed to delete payslip: ${error.message}` };
+  }
+
+  // Recalculate period totals
+  await recalculatePeriodTotals(orgId, periodId);
+
+  return { success: true };
+}
+
+// Regenerate a single employee's payslip
+export async function regeneratePayslip(
+  orgId: string,
+  periodId: string,
+  employeeId: string
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireOrgAdmin(orgId);
+  } catch (error) {
+    console.error('Admin check failed in regeneratePayslip:', error);
+    return { error: `Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+
+  const supabase = await createClient();
+
+  // Verify the period is in draft or preview status
+  const { data: period } = await supabase
+    .from('payroll_periods')
+    .select('status')
+    .eq('id', periodId)
+    .eq('organization_id', orgId)
+    .single();
+
+  if (!period) {
+    return { error: 'Payroll period not found' };
+  }
+
+  if (period.status !== 'draft' && period.status !== 'preview') {
+    return { error: 'Can only regenerate payslips in draft or preview periods' };
+  }
+
+  // Get employee details
+  const { data: employee, error: empError } = await supabase
+    .from('employee_details')
+    .select(`
+      profile_id,
+      annual_salary,
+      tax_code,
+      default_pension_percent,
+      employer_pension_percent
+    `)
+    .eq('organization_id', orgId)
+    .eq('profile_id', employeeId)
+    .single();
+
+  if (empError || !employee) {
+    console.error('Error fetching employee:', empError);
+    return { error: 'Employee not found or not active' };
+  }
+
+  // Calculate new payslip
+  const calc = calculatePayslip(
+    Number(employee.annual_salary),
+    employee.tax_code,
+    Number(employee.default_pension_percent),
+    Number(employee.employer_pension_percent)
+  );
+
+  const { employer_ni: _employerNi, ...payslipData } = calc;
+
+  // Delete existing payslip for this employee in this period
+  await supabase
+    .from('payslips')
+    .delete()
+    .eq('payroll_period_id', periodId)
+    .eq('employee_id', employeeId);
+
+  // Create new payslip
+  const { error: insertError } = await supabase
+    .from('payslips')
+    .insert({
+      payroll_period_id: periodId,
+      employee_id: employeeId,
+      ...payslipData,
+      status: period.status === 'preview' ? 'preview' : 'draft',
+      tax_code: employee.tax_code,
+    });
+
+  if (insertError) {
+    console.error('Error inserting payslip:', insertError);
+    return { error: `Failed to regenerate payslip: ${insertError.message}` };
+  }
+
+  // Recalculate period totals
+  await recalculatePeriodTotals(orgId, periodId);
+
+  return { success: true };
 }

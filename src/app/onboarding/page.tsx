@@ -174,7 +174,7 @@ export default function OnboardingPage() {
               <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                 <Building2 className="h-6 w-6" />
               </div>
-              <CardTitle className="text-2xl">Welcome to PayLens</CardTitle>
+              <CardTitle className="text-2xl">Welcome to PayAdjust</CardTitle>
               <CardDescription>
                 Get started by creating your organization or wait for an invitation.
               </CardDescription>
@@ -221,7 +221,7 @@ export default function OnboardingPage() {
                 <div className="space-y-2">
                   <Label htmlFor="slug">URL Slug</Label>
                   <div className="flex items-center">
-                    <span className="text-sm text-zinc-500 mr-1">paylens.app/</span>
+                    <span className="text-sm text-zinc-500 mr-1">payadjust.com/</span>
                     <Input
                       id="slug"
                       value={formData.slug}

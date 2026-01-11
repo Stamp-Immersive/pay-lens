@@ -185,7 +185,7 @@ export async function generateBACSExport(orgId: string, periodId: string): Promi
     : new Date();
   const dateStr = processingDate.toISOString().slice(2, 10).replace(/-/g, '');
 
-  lines.push(`VOL1PAYLENS               ${dateStr}`);
+  lines.push(`VOL1PAYADJUST             ${dateStr}`);
 
   validPayments.forEach((payment) => {
     const sortCode = (payment.bank_sort_code || '').replace(/-/g, '').padEnd(6, '0');

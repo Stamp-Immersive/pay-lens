@@ -376,7 +376,7 @@ export async function inviteMember(orgId: string, email: string, role: 'admin' |
 
     await sendEmail({
       to: normalizedEmail,
-      subject: `You're invited to join ${org.name} on PayLens`,
+      subject: `You're invited to join ${org.name} on PayAdjust`,
       html: emailHtml,
     });
 
@@ -428,7 +428,7 @@ export async function inviteMember(orgId: string, email: string, role: 'admin' |
 
   await sendEmail({
     to: normalizedEmail,
-    subject: `You're invited to join ${org.name} on PayLens`,
+    subject: `You're invited to join ${org.name} on PayAdjust`,
     html: emailHtml,
   });
 

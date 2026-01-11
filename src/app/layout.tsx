@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PayLens",
+  title: "PayAdjust",
   description: "Understand your payslip and optimize your contributions",
 };
 

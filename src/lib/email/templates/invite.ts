@@ -28,7 +28,7 @@ export function getInviteEmailHtml({
     </h1>
 
     <p style="color: #666; font-size: 16px; margin-bottom: 24px;">
-      ${inviterName} has invited you to join <strong>${organizationName}</strong> as ${role === 'admin' ? 'an admin' : 'an employee'} on PayLens.
+      ${inviterName} has invited you to join <strong>${organizationName}</strong> as ${role === 'admin' ? 'an admin' : 'an employee'} on PayAdjust.
     </p>
 
     <a href="${acceptUrl}"
@@ -48,7 +48,7 @@ export function getInviteEmailHtml({
       If you didn't expect this invitation, you can safely ignore this email.
     </p>
     <p style="color: #999; font-size: 12px;">
-      PayLens - Payroll Management
+      PayAdjust - Payroll Management
     </p>
   </div>
 </body>

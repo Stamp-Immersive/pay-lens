@@ -24,7 +24,7 @@ export async function sendEmail({
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'PayLens <noreply@paylens.app>', // Update with your verified domain
+      from: 'PayAdjust <noreply@payadjust.com>',
       to,
       subject,
       html,

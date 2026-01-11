@@ -40,7 +40,7 @@ function LoginContent() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">PayLens</CardTitle>
+          <CardTitle className="text-2xl font-bold">PayAdjust</CardTitle>
           <CardDescription>
             Sign in to view your payslips and manage contributions
           </CardDescription>

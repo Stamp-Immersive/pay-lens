@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Mail, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,11 @@ export function NotificationBell({ pendingInvites }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
   const [localInvites, setLocalInvites] = useState(pendingInvites);
+
+  // Sync local state when props change (e.g., after navigation)
+  useEffect(() => {
+    setLocalInvites(pendingInvites);
+  }, [pendingInvites]);
 
   const totalCount = localInvites.length;
 

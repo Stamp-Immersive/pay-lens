@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Check, X, ChevronRight } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -15,6 +15,11 @@ export function PendingInvitesBanner({ invites }: PendingInvitesBannerProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [localInvites, setLocalInvites] = useState(invites);
+
+  // Sync local state when props change (e.g., after navigation)
+  useEffect(() => {
+    setLocalInvites(invites);
+  }, [invites]);
 
   if (localInvites.length === 0) {
     return null;

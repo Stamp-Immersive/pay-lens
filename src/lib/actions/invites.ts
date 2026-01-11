@@ -4,6 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { createClient, getUser } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+// Test action to verify server actions work
+export async function testAction(): Promise<{ ok: boolean }> {
+  return { ok: true };
+}
+
 export type PendingInvite = {
   id: string;
   organization_id: string;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, getUser } from '@/lib/supabase/server';
+import { getUser } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,49 +16,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing inviteId' }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    // Use admin client to bypass RLS
+    const supabase = createAdminClient();
 
     // Get the invite and org slug
     const { data: invite, error: fetchError } = await supabase
       .from('organization_members')
-      .select('id, organization_id, organizations(slug)')
+      .select('id, organization_id, profile_id, organizations(slug)')
       .eq('id', inviteId)
       .eq('profile_id', user.id)
       .is('accepted_at', null)
       .single();
 
     if (fetchError || !invite) {
+      console.log('Invite not found:', { inviteId, userId: user.id, fetchError });
       return NextResponse.json({ success: false, error: 'Invite not found' }, { status: 404 });
     }
 
-    // Check if user is already an accepted member of this org
-    const { data: existingMember } = await supabase
+    // Accept the invite by setting accepted_at
+    const { error: updateError } = await supabase
       .from('organization_members')
-      .select('id')
-      .eq('organization_id', invite.organization_id)
-      .eq('profile_id', user.id)
-      .not('accepted_at', 'is', null)
-      .neq('id', inviteId)
-      .maybeSingle();
+      .update({ accepted_at: new Date().toISOString() })
+      .eq('id', inviteId);
 
-    if (existingMember) {
-      // User already in org - delete this duplicate pending invite
-      await supabase
-        .from('organization_members')
-        .delete()
-        .eq('id', inviteId);
-    } else {
-      // Accept the invite normally
-      const { error: updateError } = await supabase
-        .from('organization_members')
-        .update({ accepted_at: new Date().toISOString() })
-        .eq('id', inviteId)
-        .eq('profile_id', user.id);
-
-      if (updateError) {
-        return NextResponse.json({ success: false, error: 'Failed to accept invite' }, { status: 500 });
-      }
+    if (updateError) {
+      console.error('Failed to update invite:', updateError);
+      return NextResponse.json({ success: false, error: 'Failed to accept invite' }, { status: 500 });
     }
+
+    console.log('Invite accepted successfully:', { inviteId, orgId: invite.organization_id });
 
     const org = invite.organizations as unknown as { slug: string } | null;
     return NextResponse.json({ success: true, orgSlug: org?.slug });

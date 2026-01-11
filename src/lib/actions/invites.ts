@@ -34,11 +34,10 @@ export async function getMyPendingInvites(): Promise<PendingInvite[]> {
     .eq('profile_id', user.id)
     .not('accepted_at', 'is', null);
 
-  const acceptedOrgIds = (acceptedOrgs || []).map(o => o.organization_id);
+  const acceptedOrgIds = new Set((acceptedOrgs || []).map(o => o.organization_id));
 
   // Get invites from organization_members where accepted_at is null
-  // and exclude orgs where user is already an accepted member
-  let query = supabase
+  const { data, error } = await supabase
     .from('organization_members')
     .select(`
       id,
@@ -55,21 +54,17 @@ export async function getMyPendingInvites(): Promise<PendingInvite[]> {
     .eq('profile_id', user.id)
     .is('accepted_at', null);
 
-  // Exclude orgs where user is already a member
-  if (acceptedOrgIds.length > 0) {
-    query = query.not('organization_id', 'in', `(${acceptedOrgIds.join(',')})`);
-  }
-
-  const { data, error } = await query;
-
   if (error) {
     console.error('Error fetching pending invites:', error);
     return [];
   }
 
+  // Filter out orgs where user is already an accepted member
+  const filteredData = (data || []).filter(inv => !acceptedOrgIds.has(inv.organization_id));
+
   // Get inviter info separately (can't join profiles twice easily)
   const invites = await Promise.all(
-    (data || []).map(async (invite) => {
+    filteredData.map(async (invite) => {
       let inviter = undefined;
       if (invite.invited_by) {
         const { data: inviterData } = await supabase
@@ -117,15 +112,32 @@ export async function acceptInvite(inviteId: string) {
     throw new Error('Invite not found or already accepted');
   }
 
-  // Accept the invite
-  const { error: updateError } = await supabase
+  // Check if user is already an accepted member of this org (duplicate record case)
+  const { data: existingMembership } = await supabase
     .from('organization_members')
-    .update({ accepted_at: new Date().toISOString() })
-    .eq('id', inviteId);
+    .select('id')
+    .eq('organization_id', invite.organization_id)
+    .eq('profile_id', user.id)
+    .not('accepted_at', 'is', null)
+    .single();
 
-  if (updateError) {
-    console.error('Error accepting invite:', updateError);
-    throw new Error('Failed to accept invite');
+  if (existingMembership) {
+    // User is already a member - delete this duplicate pending invite
+    await supabase
+      .from('organization_members')
+      .delete()
+      .eq('id', inviteId);
+  } else {
+    // Accept the invite normally
+    const { error: updateError } = await supabase
+      .from('organization_members')
+      .update({ accepted_at: new Date().toISOString() })
+      .eq('id', inviteId);
+
+    if (updateError) {
+      console.error('Error accepting invite:', updateError);
+      throw new Error('Failed to accept invite');
+    }
   }
 
   revalidatePath('/invites');

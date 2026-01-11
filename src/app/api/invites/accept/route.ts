@@ -34,17 +34,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Accept the invite by setting accepted_at
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('organization_members')
       .update({ accepted_at: new Date().toISOString() })
-      .eq('id', inviteId);
+      .eq('id', inviteId)
+      .select('id, accepted_at')
+      .single();
 
     if (updateError) {
       console.error('Failed to update invite:', updateError);
       return NextResponse.json({ success: false, error: 'Failed to accept invite' }, { status: 500 });
     }
 
-    console.log('Invite accepted successfully:', { inviteId, orgId: invite.organization_id });
+    if (!updated || !updated.accepted_at) {
+      console.error('Update did not set accepted_at:', updated);
+      return NextResponse.json({ success: false, error: 'Update failed silently' }, { status: 500 });
+    }
+
+    console.log('Invite accepted successfully:', { inviteId, orgId: invite.organization_id, accepted_at: updated.accepted_at });
 
     const org = invite.organizations as unknown as { slug: string } | null;
     return NextResponse.json({ success: true, orgSlug: org?.slug });

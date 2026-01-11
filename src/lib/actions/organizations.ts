@@ -180,7 +180,7 @@ export async function createOrganization(name: string, slug: string): Promise<{ 
       slug,
       created_by: user.id,
     })
-    .select()
+    .select('id, slug, name')
     .single();
 
   if (orgError) {
@@ -207,7 +207,7 @@ export async function createOrganization(name: string, slug: string): Promise<{ 
   }
 
   revalidatePath('/dashboard');
-  return { success: true, org: { id: org.id, slug: org.slug, name: org.name } };
+  return { success: true, org: { id: org.id, slug: org.slug || slug, name: org.name || name } };
 }
 
 // Update organization settings

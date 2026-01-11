@@ -1,12 +1,15 @@
 import { redirect } from 'next/navigation';
 import { getUser, getUserProfile } from '@/lib/supabase/server';
 import { getOrganizationBySlug, getMyRole, getAdminNotificationCounts } from '@/lib/actions/organizations';
+import { getMyPendingInvites } from '@/lib/actions/invites';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 import { Badge } from '@/components/ui/badge';
 import { AdminNav } from '@/components/admin/AdminNav';
 import { OrganizationSwitcher } from '@/components/OrganizationSwitcher';
 import { Logo } from '@/components/Logo';
+import { NotificationBell } from '@/components/NotificationBell';
+import { PendingInvitesBanner } from '@/components/PendingInvitesBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +40,10 @@ export default async function AdminLayout({
     redirect(`/dashboard/${orgSlug}/employee`);
   }
 
-  const notificationCounts = await getAdminNotificationCounts(organization.id);
+  const [notificationCounts, pendingInvites] = await Promise.all([
+    getAdminNotificationCounts(organization.id),
+    getMyPendingInvites(),
+  ]);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -54,12 +60,15 @@ export default async function AdminLayout({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationBell pendingInvites={pendingInvites} />
             <ThemeToggle />
             <SignOutButton />
           </div>
         </header>
 
         <AdminNav notificationCounts={notificationCounts} />
+
+        <PendingInvitesBanner invites={pendingInvites} />
 
         {children}
       </div>

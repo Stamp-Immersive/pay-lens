@@ -1,6 +1,7 @@
 import { redirect, notFound } from 'next/navigation';
 import { getUser, getUserProfile } from '@/lib/supabase/server';
 import { getOrganizationBySlug, getMyRole } from '@/lib/actions/organizations';
+import { getMyPendingInvites } from '@/lib/actions/invites';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { SignOutButton } from '@/components/auth/SignOutButton';
@@ -9,6 +10,8 @@ import { PensionAdjustment } from '@/components/employee/PensionAdjustment';
 import { PayslipHistory } from '@/components/employee/PayslipHistory';
 import { OrganizationSwitcher } from '@/components/OrganizationSwitcher';
 import { Logo } from '@/components/Logo';
+import { NotificationBell } from '@/components/NotificationBell';
+import { PendingInvitesBanner } from '@/components/PendingInvitesBanner';
 import {
   getMyDetails,
   getMyPayslips,
@@ -49,10 +52,11 @@ export default async function EmployeeDashboardPage({
 
   const profile = await getUserProfile();
 
-  const [details, payslips, currentPayslip] = await Promise.all([
+  const [details, payslips, currentPayslip, pendingInvites] = await Promise.all([
     getMyDetails(organization.id),
     getMyPayslips(organization.id),
     getCurrentPayslip(organization.id),
+    getMyPendingInvites(),
   ]);
 
   // Check if pension adjustment is allowed for current payslip
@@ -75,10 +79,13 @@ export default async function EmployeeDashboardPage({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationBell pendingInvites={pendingInvites} />
             <ThemeToggle />
             <SignOutButton />
           </div>
         </header>
+
+        <PendingInvitesBanner invites={pendingInvites} />
 
         {!details?.id ? (
           // Employee not set up yet

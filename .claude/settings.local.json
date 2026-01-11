@@ -23,7 +23,8 @@
       "Bash(node -e:*)",
       "Bash(node capture-logo.js:*)",
       "Bash(cat:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

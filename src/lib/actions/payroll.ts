@@ -382,10 +382,13 @@ export async function generatePayslips(orgId: string, periodId: string): Promise
       Number(emp.employer_pension_percent)
     );
 
+    // Remove employer_ni as it's not stored in payslips table (it's a company cost, not employee deduction)
+    const { employer_ni: _employerNi, ...payslipData } = calc;
+
     return {
       payroll_period_id: periodId,
       employee_id: emp.profile_id,
-      ...calc,
+      ...payslipData,
       status: 'draft',
       tax_code: emp.tax_code,
     };

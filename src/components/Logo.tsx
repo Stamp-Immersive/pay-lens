@@ -17,7 +17,7 @@ export function Logo({ size = 'md', className }: LogoProps) {
     <span
       className={cn(
         stackSansNotch.className,
-        'bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent',
+        'bg-gradient-to-br from-zinc-900 via-zinc-500 to-zinc-400 bg-clip-text text-transparent',
         sizeClasses[size],
         className
       )}

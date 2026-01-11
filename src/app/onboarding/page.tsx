@@ -81,8 +81,13 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      const org = await createOrganization(formData.name, formData.slug);
-      router.push(`/dashboard/${org.slug}/admin`);
+      const result = await createOrganization(formData.name, formData.slug);
+      if (result.success && result.org) {
+        window.location.href = `/dashboard/${result.org.slug}/admin`;
+      } else {
+        setError(result.error || 'Failed to create organization');
+        setLoading(false);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create organization');
       setLoading(false);

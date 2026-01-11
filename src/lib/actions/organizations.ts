@@ -132,16 +132,18 @@ export async function isOrgAdmin(orgId: string): Promise<boolean> {
 }
 
 // Create a new organization
-export async function createOrganization(name: string, slug: string) {
+export async function createOrganization(name: string, slug: string): Promise<{ success: boolean; error?: string; org?: { id: string; slug: string; name: string } }> {
   const user = await getUser();
-  if (!user) throw new Error('Not authenticated');
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
 
   const supabase = await createClient();
 
   // Validate slug format
   const slugRegex = /^[a-z0-9-]+$/;
   if (!slugRegex.test(slug)) {
-    throw new Error('Slug can only contain lowercase letters, numbers, and hyphens');
+    return { success: false, error: 'Slug can only contain lowercase letters, numbers, and hyphens' };
   }
 
   // Check if slug is taken
@@ -152,7 +154,7 @@ export async function createOrganization(name: string, slug: string) {
     .single();
 
   if (existing) {
-    throw new Error('This slug is already taken');
+    return { success: false, error: 'This slug is already taken' };
   }
 
   // Use admin client for org creation (bypasses RLS, but we've verified user above)
@@ -167,7 +169,7 @@ export async function createOrganization(name: string, slug: string) {
 
   if (profileError || !profile) {
     console.error('Profile not found for user:', user.id, profileError);
-    throw new Error('User profile not found. Please sign out and sign in again.');
+    return { success: false, error: 'User profile not found. Please sign out and sign in again.' };
   }
 
   // Create organization
@@ -183,7 +185,7 @@ export async function createOrganization(name: string, slug: string) {
 
   if (orgError) {
     console.error('Error creating organization:', orgError, 'User ID:', user.id);
-    throw new Error('Failed to create organization');
+    return { success: false, error: 'Failed to create organization' };
   }
 
   // Add creator as owner
@@ -201,11 +203,11 @@ export async function createOrganization(name: string, slug: string) {
     console.error('Error adding owner:', memberError);
     // Rollback org creation
     await adminClient.from('organizations').delete().eq('id', org.id);
-    throw new Error('Failed to create organization');
+    return { success: false, error: 'Failed to create organization' };
   }
 
   revalidatePath('/dashboard');
-  return org;
+  return { success: true, org: { id: org.id, slug: org.slug, name: org.name } };
 }
 
 // Update organization settings

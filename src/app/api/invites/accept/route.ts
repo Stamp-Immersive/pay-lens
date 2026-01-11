@@ -30,15 +30,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invite not found' }, { status: 404 });
     }
 
-    // Accept the invite
-    const { error: updateError } = await supabase
+    // Check if user is already an accepted member of this org
+    const { data: existingMember } = await supabase
       .from('organization_members')
-      .update({ accepted_at: new Date().toISOString() })
-      .eq('id', inviteId)
-      .eq('profile_id', user.id);
+      .select('id')
+      .eq('organization_id', invite.organization_id)
+      .eq('profile_id', user.id)
+      .not('accepted_at', 'is', null)
+      .neq('id', inviteId)
+      .maybeSingle();
 
-    if (updateError) {
-      return NextResponse.json({ success: false, error: 'Failed to accept invite' }, { status: 500 });
+    if (existingMember) {
+      // User already in org - delete this duplicate pending invite
+      await supabase
+        .from('organization_members')
+        .delete()
+        .eq('id', inviteId);
+    } else {
+      // Accept the invite normally
+      const { error: updateError } = await supabase
+        .from('organization_members')
+        .update({ accepted_at: new Date().toISOString() })
+        .eq('id', inviteId)
+        .eq('profile_id', user.id);
+
+      if (updateError) {
+        return NextResponse.json({ success: false, error: 'Failed to accept invite' }, { status: 500 });
+      }
     }
 
     const org = invite.organizations as unknown as { slug: string } | null;

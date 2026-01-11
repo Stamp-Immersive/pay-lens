@@ -149,7 +149,7 @@ export async function acceptInvite(inviteId: string): Promise<{ success: boolean
   revalidatePath('/invites');
   revalidatePath('/dashboard');
 
-  const org = invite.organizations as { slug: string } | null;
+  const org = invite.organizations as unknown as { slug: string } | null;
   return { success: true, orgSlug: org?.slug };
 }
 

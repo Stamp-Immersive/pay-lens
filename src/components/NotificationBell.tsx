@@ -29,12 +29,13 @@ export function NotificationBell({ pendingInvites }: NotificationBellProps) {
   const totalCount = localInvites.length;
 
   async function handleAccept(inviteId: string) {
+    alert('handleAccept called with: ' + inviteId);
     setLoading(inviteId);
     try {
       // Test if server actions work at all
-      console.log('Testing server action...');
+      alert('About to call testAction');
       const testResult = await testAction();
-      console.log('Test result:', testResult);
+      alert('testAction returned: ' + JSON.stringify(testResult));
 
       console.log('Calling acceptInvite...');
       const result = await acceptInvite(inviteId);

@@ -17,7 +17,11 @@
       "Bash(git push:*)",
       "Bash(git remote set-url:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebFetch(domain:fonts.google.com)",
+      "WebSearch",
+      "Bash(node -e:*)",
+      "Bash(node capture-logo.js:*)"
     ]
   }
 }

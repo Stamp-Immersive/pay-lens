@@ -47,7 +47,19 @@ To add more users, edit `src/app/auth/callback/route.ts` → `allowedEmails` arr
 - Organization creation and onboarding
 - Email invite system with pending invite acceptance
 
-**Database Status:** All migrations applied (001_payroll_schema.sql, 002_multi_org.sql, 003_fix_profiles_rls.sql, 004_pending_invites.sql)
+**Database Status:** All migrations applied (001_payroll_schema.sql, 002_multi_org.sql, 003_fix_profiles_rls.sql, 004_pending_invites.sql, 005_add_job_title.sql)
+
+### Recent Session (Jan 2026)
+Completed job_title feature for employees:
+- [x] Created migration `005_add_job_title.sql` to add job_title column to employee_details
+- [x] Updated `EmployeeWithDetails` type to include job_title
+- [x] Updated `getEmployees()` and `getEmployee()` to return job_title
+- [x] Updated `upsertEmployeeDetails()` to accept and save job_title
+- [x] Added job_title input field to EmployeeForm
+- [x] Fixed form pre-fill issue with useEffect to sync employee prop changes
+- [x] Updated EmployeesList table to show "Job Title" column instead of org role
+
+**Note:** Migration needs to be applied to production Supabase database before the job_title feature will work.
 
 ---
 
@@ -68,10 +80,11 @@ To add more users, edit `src/app/auth/callback/route.ts` → `allowedEmails` arr
 ### Phase 3: Admin - Employee Management (COMPLETE)
 - [x] List all employees with active/inactive toggle
 - [x] Admin adds employees to organization (not self-registration)
-- [x] Set up employee details (name, department, salary, tax code, pension %, bank details)
+- [x] Set up employee details (name, department, job title, salary, tax code, pension %, bank details)
 - [x] Edit employee details
 - [x] Deactivate/reactivate employee (soft delete)
 - [x] "Needs Setup" indicator for employees without payroll details
+- [x] Job title field added to employee details (displays in employee list)
 
 ### Phase 4: Admin - Payroll Generation (COMPLETE)
 - [x] Create new payroll period (month/year)
@@ -208,6 +221,7 @@ This phase adds support for multiple organizations and contractors.
 - `supabase/migrations/002_multi_org.sql` - Multi-organization support
 - `supabase/migrations/003_fix_profiles_rls.sql` - Fix profiles RLS for org member visibility
 - `supabase/migrations/004_pending_invites.sql` - Pending invites table for non-users
+- `supabase/migrations/005_add_job_title.sql` - Add job_title column to employee_details
 
 ---
 

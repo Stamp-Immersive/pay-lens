@@ -114,8 +114,9 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
     action: async () => {},
   });
 
-  // Payslip detail dialog
-  const [selectedPayslip, setSelectedPayslip] = useState<PayslipWithEmployee | null>(null);
+  // Payslip detail dialog - store ID and look up from payslips array for fresh data
+  const [selectedPayslipId, setSelectedPayslipId] = useState<string | null>(null);
+  const selectedPayslip = selectedPayslipId ? payslips.find(p => p.id === selectedPayslipId) || null : null;
 
   // Bonus dialog state
   const [bonusDialogOpen, setBonusDialogOpen] = useState(false);
@@ -354,7 +355,7 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
 
   const handleDeleteBonus = (bonus: PayslipBonus) => {
     // Close the payslip detail dialog first
-    setSelectedPayslip(null);
+    setSelectedPayslipId(null);
 
     setConfirmDialog({
       open: true,
@@ -635,7 +636,7 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setSelectedPayslip(payslip)}>
+                              <DropdownMenuItem onClick={() => setSelectedPayslipId(payslip.id)}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
@@ -754,7 +755,7 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
         </Dialog>
 
         {/* Payslip Detail Dialog */}
-        <Dialog open={!!selectedPayslip} onOpenChange={(open) => !open && setSelectedPayslip(null)}>
+        <Dialog open={!!selectedPayslip} onOpenChange={(open) => !open && setSelectedPayslipId(null)}>
           <DialogContent className="max-w-2xl">
             {selectedPayslip && (
               <>
@@ -858,7 +859,7 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setSelectedPayslip(null)}>
+                  <Button variant="outline" onClick={() => setSelectedPayslipId(null)}>
                     Close
                   </Button>
                 </DialogFooter>
@@ -877,11 +878,6 @@ export function PayrollPeriodDetail({ period, payslips, orgId }: PayrollPeriodDe
           employeeName={bonusTarget?.employeeName}
           onSuccess={() => {
             setBonusTarget(null);
-            // Refresh the selected payslip if one is open
-            if (selectedPayslip) {
-              const updated = payslips.find((p) => p.id === selectedPayslip.id);
-              if (updated) setSelectedPayslip(updated);
-            }
           }}
         />
       </div>

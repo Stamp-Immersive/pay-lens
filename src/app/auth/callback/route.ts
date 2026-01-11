@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
 import { convertPendingInvitesForUser } from '@/lib/actions/invites';
 
@@ -46,6 +47,29 @@ export async function GET(request: NextRequest) {
 
       const forwardedHost = request.headers.get('x-forwarded-host');
       const isLocalEnv = process.env.NODE_ENV === 'development';
+
+      // Ensure user has a profile (use admin client to bypass RLS)
+      const adminClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      );
+
+      const { data: existingProfile } = await adminClient
+        .from('profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .single();
+
+      if (!existingProfile) {
+        // Create profile for new user
+        await adminClient.from('profiles').insert({
+          id: data.user.id,
+          email: data.user.email,
+          full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
+          avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
+        });
+      }
 
       // Convert any pending invites for this user's email
       let hasInvites = false;

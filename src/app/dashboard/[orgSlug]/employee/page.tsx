@@ -122,6 +122,7 @@ export default async function EmployeeDashboardPage({
             <TabsContent value="calculator">
               <PensionAdjustment
                 payslip={currentPayslip}
+                allPayslips={payslips}
                 annualSalary={annualSalary}
                 canAdjust={canAdjust}
                 orgId={organization.id}

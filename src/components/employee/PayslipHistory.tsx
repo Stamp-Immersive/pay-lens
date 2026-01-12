@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Eye, FileText } from 'lucide-react';
+import { BonusDisplay } from './BonusDisplay';
 import { type EmployeePayslip } from '@/lib/actions/employee';
 
 const MONTHS = [
@@ -139,28 +140,25 @@ export function PayslipHistory({ payslips }: PayslipHistoryProps) {
                     <span className="text-zinc-500">Basic Salary</span>
                     <span>{formatCurrency(selectedPayslip.base_salary)}</span>
                   </div>
-                  {/* Individual bonuses */}
-                  {selectedPayslip.bonuses && selectedPayslip.bonuses.length > 0 && (
-                    selectedPayslip.bonuses.map((bonus) => (
-                      <div key={bonus.id} className="flex justify-between">
-                        <span className="text-zinc-500">{bonus.description}</span>
-                        <span>{formatCurrency(bonus.amount)}</span>
-                      </div>
-                    ))
-                  )}
-                  {/* Legacy bonus field */}
-                  {selectedPayslip.bonus > 0 && (!selectedPayslip.bonuses || selectedPayslip.bonuses.length === 0) && (
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500">Bonus</span>
-                      <span>{formatCurrency(selectedPayslip.bonus)}</span>
-                    </div>
-                  )}
                   {selectedPayslip.other_additions > 0 && (
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Other Additions</span>
                       <span>{formatCurrency(selectedPayslip.other_additions)}</span>
                     </div>
                   )}
+                </div>
+
+                {/* Bonus Display with confetti */}
+                {((selectedPayslip.bonuses && selectedPayslip.bonuses.length > 0) || selectedPayslip.bonus > 0) && (
+                  <BonusDisplay
+                    bonuses={selectedPayslip.bonuses || []}
+                    legacyBonus={selectedPayslip.bonus}
+                    showConfetti={false}
+                    className="mt-3"
+                  />
+                )}
+
+                <div className="space-y-2 text-sm mt-3">
                   <Separator />
                   <div className="flex justify-between font-medium">
                     <span>Gross Pay</span>

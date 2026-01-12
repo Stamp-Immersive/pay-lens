@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { BonusDisplay } from './BonusDisplay';
 import { type EmployeePayslip } from '@/lib/actions/employee';
 
 const MONTHS = [
@@ -34,17 +35,14 @@ export function CurrentPayslip({ payslip, employeeName }: CurrentPayslipProps) {
   const periodLabel = `${MONTHS[payslip.period_month - 1]} ${payslip.period_year}`;
   const statusConfig = STATUS_CONFIG[payslip.status] || STATUS_CONFIG.draft;
 
-  // Build earnings array with individual bonuses
+  // Build earnings array WITHOUT bonuses (bonuses displayed separately)
   const earnings = [
     { name: 'Basic Salary', amount: payslip.base_salary },
-    // Include individual bonuses with their descriptions
-    ...(payslip.bonuses || []).map((b) => ({ name: b.description, amount: b.amount })),
-    // Fall back to legacy bonus field if no individual bonuses exist
-    ...(payslip.bonus > 0 && (!payslip.bonuses || payslip.bonuses.length === 0)
-      ? [{ name: 'Bonus', amount: payslip.bonus }]
-      : []),
     ...(payslip.other_additions > 0 ? [{ name: 'Other Additions', amount: payslip.other_additions }] : []),
   ];
+
+  // Check for bonuses
+  const hasBonuses = (payslip.bonuses && payslip.bonuses.length > 0) || payslip.bonus > 0;
 
   const deductions = [
     { name: 'Pension', amount: payslip.pension_employee, percentage: payslip.pension_percent, adjustable: true },
@@ -94,7 +92,7 @@ export function CurrentPayslip({ payslip, employeeName }: CurrentPayslipProps) {
           <CardHeader>
             <CardTitle className="text-lg">Earnings</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="space-y-3">
               {earnings.map((earning, index) => (
                 <div key={index} className="flex justify-between">
@@ -103,7 +101,17 @@ export function CurrentPayslip({ payslip, employeeName }: CurrentPayslipProps) {
                 </div>
               ))}
             </div>
-            <Separator className="my-4" />
+
+            {/* Bonus Display with confetti */}
+            {hasBonuses && (
+              <BonusDisplay
+                bonuses={payslip.bonuses || []}
+                legacyBonus={payslip.bonus}
+                showConfetti={true}
+              />
+            )}
+
+            <Separator />
             <div className="flex justify-between font-semibold">
               <span>Gross Pay</span>
               <span className="text-green-600">{formatCurrency(payslip.gross_pay)}</span>

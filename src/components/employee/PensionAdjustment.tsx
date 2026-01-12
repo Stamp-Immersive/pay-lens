@@ -62,7 +62,7 @@ export function PensionAdjustment({ payslip, allPayslips = [], annualSalary, can
   const [selectedMonth, setSelectedMonth] = useState<string>(payslip?.id || '');
 
   const minPension = 3;
-  const maxPension = 10;
+  const maxPension = 100;
 
   // Get all payslips for the current year for annual view
   const currentYear = payslip?.period_year || new Date().getFullYear();

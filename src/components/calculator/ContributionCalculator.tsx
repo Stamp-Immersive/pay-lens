@@ -28,7 +28,7 @@ export function ContributionCalculator({
   currentPensionPercentage,
   studentLoanPlan = null,
   minPension = 3,
-  maxPension = 10,
+  maxPension = 100,
 }: ContributionCalculatorProps) {
   const [pensionPercentage, setPensionPercentage] = useState(currentPensionPercentage);
 

@@ -239,9 +239,9 @@ export async function adjustPension(
     throw new Error('Pension adjustment is not allowed for this payslip');
   }
 
-  // Validate pension range (3-10%)
-  if (newPensionPercent < 3 || newPensionPercent > 10) {
-    throw new Error('Pension must be between 3% and 10%');
+  // Validate pension range (3-100%)
+  if (newPensionPercent < 3 || newPensionPercent > 100) {
+    throw new Error('Pension must be between 3% and 100%');
   }
 
   const supabase = await createClient();
